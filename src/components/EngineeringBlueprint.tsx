@@ -30,55 +30,13 @@ export default function EngineeringBlueprint() {
       </div>
 
       <div className="mt-8 space-y-4">
-        <BlueprintRow
-          label="Part type"
-          value={specification.partType.value}
-          source={specification.partType.source}
-        />
-
-        <BlueprintRow
-          label="Purpose"
-          value={specification.purpose.value}
-          source={specification.purpose.source}
-        />
-
-        <BlueprintRow
-          label="Load"
-          value={
-            specification.loadKg.value
-              ? `${specification.loadKg.value} kg`
-              : null
-          }
-          source={specification.loadKg.source}
-        />
-
-        <BlueprintRow
-          label="Mounting surface"
-          value={specification.mountingSurface.value}
-          source={specification.mountingSurface.source}
-        />
-
-        <BlueprintRow
-          label="Material"
-          value={specification.material.value}
-          source={specification.material.source}
-        />
-
-        <BlueprintRow
-          label="Fasteners"
-          value={specification.fastenerType.value}
-          source={specification.fastenerType.source}
-        />
-
-        <BlueprintRow
-          label="Thickness"
-          value={
-            specification.thickness.value
-              ? `${specification.thickness.value} mm`
-              : null
-          }
-          source={specification.thickness.source}
-        />
+        <BlueprintRow label="Part type" value={specification.partType.value} source={specification.partType.source} />
+        <BlueprintRow label="Purpose" value={specification.purpose.value} source={specification.purpose.source} />
+        <BlueprintRow label="Load" value={specification.loadKg.value ? `${specification.loadKg.value} kg` : null} source={specification.loadKg.source} />
+        <BlueprintRow label="Mounting surface" value={specification.mountingSurface.value} source={specification.mountingSurface.source} />
+        <BlueprintRow label="Material" value={specification.material.value} source={specification.material.source} />
+        <BlueprintRow label="Fasteners" value={specification.fastenerType.value} source={specification.fastenerType.source} />
+        <BlueprintRow label="Thickness" value={specification.thickness.value ? `${specification.thickness.value} mm` : null} source={specification.thickness.source} />
       </div>
 
       <div className="mt-8">
@@ -90,9 +48,9 @@ export default function EngineeringBlueprint() {
               ✓ No engineering issues detected
             </div>
           ) : (
-            project.validationIssues.map((issue) => (
+            project.validationIssues.map((issue, index) => (
               <div
-                key={issue.title}
+                key={`${issue.title}-${index}`}
                 className={`rounded-xl border p-4 text-sm ${
                   issue.severity === "error"
                     ? "border-red-400/30 bg-red-500/10 text-red-200"
@@ -124,9 +82,9 @@ export default function EngineeringBlueprint() {
               No recommendations yet.
             </div>
           ) : (
-            project.recommendations.map((item) => (
+            project.recommendations.map((item, index) => (
               <div
-                key={item.category}
+                key={`${item.category}-${item.value}-${index}`}
                 className="rounded-xl border border-white/10 bg-white/5 p-4"
               >
                 <div className="flex justify-between">

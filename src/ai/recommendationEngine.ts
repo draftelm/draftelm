@@ -1,4 +1,8 @@
 import { EngineeringSpecification } from "./engineeringSpecification";
+import {
+  EngineeringRules,
+  EngineeringRule,
+} from "../knowledge/engineeringRules";
 
 export type Recommendation = {
   category: string;
@@ -12,59 +16,28 @@ export function generateRecommendations(
 ): Recommendation[] {
   const recommendations: Recommendation[] = [];
 
-  if (specification.partType.value === "Shelf bracket") {
-    recommendations.push({
-      category: "Material",
-      value: "PETG",
-      confidence: 95,
-      reason:
-        "PETG provides excellent strength, toughness and long-term durability for functional brackets.",
-    });
+  const partType = specification.partType.value;
 
-    recommendations.push({
-      category: "Fasteners",
-      value: "M6 screws",
-      confidence: 90,
-      reason:
-        "Suitable for typical wall-mounted shelf brackets and common wall plugs.",
-    });
-
-    recommendations.push({
-      category: "Layer Height",
-      value: "0.20 mm",
-      confidence: 90,
-      reason:
-        "Good balance between print quality and production time.",
-    });
+  if (!partType) {
+    return recommendations;
   }
 
-  if (specification.partType.value === "Vacuum wall mount") {
-    recommendations.push({
-      category: "Material",
-      value: "PETG",
-      confidence: 96,
-      reason:
-        "Better impact resistance than PLA and suitable for repeated daily use.",
-    });
+  const matchingRules = EngineeringRules.filter((rule: EngineeringRule) =>
+    rule.appliesTo.includes(partType)
+  );
 
+  matchingRules.forEach((rule) => {
     recommendations.push({
-      category: "Wall Thickness",
-      value: "4 mm",
-      confidence: 88,
-      reason:
-        "Provides a strong balance between stiffness and print time.",
+      category: capitalise(rule.category),
+      value: rule.recommendation,
+      confidence: rule.confidence,
+      reason: rule.reason,
     });
-  }
-
-  if (specification.partType.value === "Phone holder") {
-    recommendations.push({
-      category: "Material",
-      value: "PETG",
-      confidence: 90,
-      reason:
-        "Better heat resistance than PLA, making it more suitable for cars and sunny environments.",
-    });
-  }
+  });
 
   return recommendations;
+}
+
+function capitalise(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

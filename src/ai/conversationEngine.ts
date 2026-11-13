@@ -27,63 +27,33 @@ export function startConversation(request: string): ConversationState {
   };
 
   if (text.includes("shelf")) {
-    specification.partType = {
-      value: "Shelf bracket",
-      source: "ai",
-    };
-
-    specification.purpose = {
-      value: "Support shelf",
-      source: "ai",
-    };
-
+    specification.partType = { value: "Shelf bracket", source: "ai" };
+    specification.purpose = { value: "Support shelf", source: "ai" };
     specification.confidence = 70;
   } else if (text.includes("dyson") || text.includes("vacuum")) {
-    specification.partType = {
-      value: "Vacuum wall mount",
-      source: "ai",
-    };
-
+    specification.partType = { value: "Vacuum wall mount", source: "ai" };
     specification.purpose = {
       value: "Wall-mounted vacuum storage",
       source: "ai",
     };
-
-    specification.loadKg = {
-      value: 4,
-      source: "engineering-rules",
-    };
-
+    specification.loadKg = { value: 4, source: "engineering-rules" };
     specification.confidence = 85;
   } else if (text.includes("phone")) {
-    specification.partType = {
-      value: "Phone holder",
-      source: "ai",
-    };
-
-    specification.purpose = {
-      value: "Hold phone securely",
-      source: "ai",
-    };
-
-    specification.loadKg = {
-      value: 0.3,
-      source: "engineering-rules",
-    };
-
+    specification.partType = { value: "Phone holder", source: "ai" };
+    specification.purpose = { value: "Hold phone securely", source: "ai" };
+    specification.loadKg = { value: 0.3, source: "engineering-rules" };
     specification.confidence = 75;
+  } else if (text.includes("bracket") || text.includes("mount")) {
+    specification.partType = { value: "General bracket", source: "ai" };
+    specification.purpose = { value: null, source: "unknown" };
+    specification.confidence = 45;
   } else {
     specification.partType = {
       value: "Custom functional part",
       source: "ai",
     };
-
-    specification.purpose = {
-      value: null,
-      source: "unknown",
-    };
-
-    specification.confidence = 35;
+    specification.purpose = { value: null, source: "unknown" };
+    specification.confidence = 30;
   }
 
   specification = applyEngineeringDefaults(specification);
@@ -103,6 +73,41 @@ export function answerQuestion(
   answer: string
 ): ConversationState {
   let updatedSpecification = { ...currentState.specification };
+
+  if (questionId === "partType") {
+    updatedSpecification.partType = {
+      value: answer,
+      source: "user",
+    };
+
+    if (answer === "Shelf bracket") {
+      updatedSpecification.purpose = {
+        value: "Support shelf",
+        source: "ai",
+      };
+    }
+
+    if (answer === "Wall bracket" || answer === "Mounting bracket") {
+      updatedSpecification.purpose = {
+        value: "Mount object to surface",
+        source: "ai",
+      };
+    }
+
+    if (answer === "Corner bracket") {
+      updatedSpecification.purpose = {
+        value: "Reinforce corner joint",
+        source: "ai",
+      };
+    }
+  }
+
+  if (questionId === "purpose") {
+    updatedSpecification.purpose = {
+      value: answer,
+      source: "user",
+    };
+  }
 
   if (questionId === "loadKg") {
     updatedSpecification.loadKg = {
@@ -125,8 +130,8 @@ export function answerQuestion(
     };
   }
 
-  if (questionId === "purpose") {
-    updatedSpecification.purpose = {
+  if (questionId === "environment") {
+    updatedSpecification.environment = {
       value: answer,
       source: "user",
     };
@@ -153,6 +158,24 @@ function getMissingInformationQuestions(
 ): ConversationQuestion[] {
   const questions: ConversationQuestion[] = [];
 
+  if (
+    specification.partType.value === "General bracket" ||
+    specification.partType.value === "Custom functional part"
+  ) {
+    questions.push({
+      id: "partType",
+      title: "What type of bracket or part do you need?",
+      options: [
+        "Shelf bracket",
+        "Wall bracket",
+        "Corner bracket",
+        "Mounting bracket",
+      ],
+    });
+
+    return questions;
+  }
+
   if (!specification.purpose.value) {
     questions.push({
       id: "purpose",
@@ -162,12 +185,14 @@ function getMissingInformationQuestions(
   }
 
   if (
-    specification.partType.value === "Shelf bracket" &&
+    (specification.partType.value === "Shelf bracket" ||
+      specification.partType.value === "Wall bracket" ||
+      specification.partType.value === "Mounting bracket") &&
     !specification.loadKg.value
   ) {
     questions.push({
       id: "loadKg",
-      title: "What weight should the shelf support?",
+      title: "What weight should this part support?",
       options: ["Up to 5 kg", "5–15 kg", "15–30 kg", "30 kg+"],
     });
   }
@@ -185,6 +210,8 @@ function getMissingInformationQuestions(
 
   if (
     (specification.partType.value === "Shelf bracket" ||
+      specification.partType.value === "Wall bracket" ||
+      specification.partType.value === "Mounting bracket" ||
       specification.partType.value === "Vacuum wall mount") &&
     !specification.mountingSurface.value
   ) {
@@ -192,6 +219,14 @@ function getMissingInformationQuestions(
       id: "mountingSurface",
       title: "What surface will this part mount to?",
       options: ["Brick", "Plasterboard", "Wood", "Metal"],
+    });
+  }
+
+  if (!specification.environment.value) {
+    questions.push({
+      id: "environment",
+      title: "Where will this part be used?",
+      options: ["Indoor", "Outdoor", "Garage/workshop", "Vehicle"],
     });
   }
 
