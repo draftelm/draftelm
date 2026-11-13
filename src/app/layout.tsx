@@ -3,8 +3,8 @@ import "./globals.css";
 import { ProjectProvider } from "../state/ProjectContext";
 
 export const metadata: Metadata = {
-  title: "PartForge AI",
-  description: "Your AI Mechanical Design Engineer",
+  title: "DRAFTELM",
+  description: "Intelligent Design & Manufacturing.",
 };
 
 export default function RootLayout({

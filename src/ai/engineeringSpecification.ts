@@ -1,5 +1,5 @@
 /**
- * PartForge AI
+ * DRAFTELM
  * Engineering Specification v1
  *
  * This object represents everything the AI knows

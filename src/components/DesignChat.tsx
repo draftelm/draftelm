@@ -24,7 +24,7 @@ export default function DesignChat() {
 
         <div className="rounded-2xl border border-blue-400/20 bg-blue-400/10 p-5">
           <div className="mb-2 text-sm text-blue-200">
-            PartForge AI Mechanical Design Engineer
+            DRAFTELM Mechanical Design Engineer
           </div>
 
           <p className="text-lg text-white">

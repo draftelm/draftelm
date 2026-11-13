@@ -20,7 +20,7 @@ export default function Hero() {
   return (
     <section className="mx-auto flex max-w-5xl flex-col items-center px-6 pt-24 text-center">
       <div className="mb-6 rounded-full border border-blue-400/30 bg-blue-400/10 px-4 py-2 text-sm text-blue-200">
-        AI Mechanical Design Engineer
+        Intelligent Design &amp; Manufacturing.
       </div>
 
       <h1 className="max-w-4xl text-5xl font-semibold tracking-tight md:text-7xl">
@@ -28,7 +28,7 @@ export default function Hero() {
       </h1>
 
       <p className="mt-6 max-w-2xl text-lg text-gray-300">
-        Describe the part you need. PartForge AI asks only the important
+        Describe the part you need. DRAFTELM asks only the important
         questions, then prepares a printable engineering blueprint.
       </p>
 

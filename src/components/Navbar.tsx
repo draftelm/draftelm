@@ -1,7 +1,7 @@
 export default function Navbar() {
   return (
     <nav className="flex items-center justify-between px-8 py-6">
-      <div className="text-xl font-bold tracking-tight">PartForge AI</div>
+      <div className="text-xl font-bold tracking-tight">DRAFTELM</div>
 
       <div className="hidden gap-8 text-sm text-gray-300 md:flex">
         <a href="#">How it works</a>
