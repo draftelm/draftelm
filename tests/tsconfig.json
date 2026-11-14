@@ -6,8 +6,13 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "rootDir": ".."
   },
-  "include": ["../src/furniture/**/*.ts", "./furniture.test.ts"]
+  "include": [
+    "../src/furniture/**/*.ts",
+    "./*.test.ts"
+  ]
 }
