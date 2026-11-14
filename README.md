@@ -4,6 +4,8 @@ Intelligent Design & Manufacturing.
 
 DRAFTELM helps users describe functional 3D-printable parts, answer key engineering questions, and prepare an engineering blueprint.
 
+The independent [furniture engineering engine](Docs/furniture-engine.md) adds Phase 1 parametric drawer-chest specification, panel generation, validation and BOM output without changing the current UI or mechanical-part workflow. Its demonstration assumptions are not manufacturing approval. Run `npm test` for the furniture unit tests.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
