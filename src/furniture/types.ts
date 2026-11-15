@@ -27,7 +27,9 @@ export interface FurnitureSpecification {
   construction: {
     carcass: "full-width-top-base";
     carcassScrewsPerJoint: number;
-    back: { type: "square-cut-inset"; rearInset: number; edgeClearance: number;
+    back: { type: "square-cut-inset"; rearInset: number;
+      /** Nominal per-edge design gap, prototype default 0. Not a manufacturing tolerance. */
+      edgeClearance: number;
       fixing: "surface-brackets"; bracketCount: number; screwsPerBracket: number; mountingEdgeOffset: number };
     drawer: { joint: "front-rear-between-sides"; bottom: "under-box";
       depth: number; height: number; frontBottomOffset: number; rearClearance: number;

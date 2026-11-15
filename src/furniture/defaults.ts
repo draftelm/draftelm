@@ -19,7 +19,7 @@ export function createDemoChestSpecification(): FurnitureSpecification {
     drawerCount: 4,
     construction: {
       carcass: "full-width-top-base", carcassScrewsPerJoint: 4,
-      back: { type: "square-cut-inset", rearInset: 10, edgeClearance: 1,
+      back: { type: "square-cut-inset", rearInset: 10, edgeClearance: 0,
         fixing: "surface-brackets", bracketCount: 8, screwsPerBracket: 2, mountingEdgeOffset: 25 },
       drawer: { joint: "front-rear-between-sides", bottom: "under-box",
         depth: 400, height: 130, frontBottomOffset: 24, rearClearance: 10,
@@ -37,7 +37,7 @@ export function createDemoChestSpecification(): FurnitureSpecification {
     verification: {
       materials: { status: "assumption", description: "Sheet grades, thickness tolerances, grain and edge treatment are unverified." },
       carcassJoinery: { status: "assumption", description: "Square butt joints with four screws per joint; screw selection and joint strength unverified." },
-      backFixing: { status: "assumption", description: "6 mm square-cut back, 10 mm rear inset, 1 mm edge clearance; eight individually anchored surface brackets with two screws each; 25 mm back-edge mounting offset is illustrative. No groove or rebate." },
+      backFixing: { status: "assumption", description: "6 mm square-cut back, 10 mm rear inset, nominal 0 mm edge clearance and four-edge contact. Eight individually anchored brackets and their screws remain an unverified retention allowance, not proven fixing adequacy. The 25 mm anchor offset is illustrative; manufacturing fit tolerances require separate approval. No groove or rebate." },
       drawerConstruction: { status: "assumption", description: "12 mm walls, front/rear between sides; 6 mm bottom screwed upwards into wall edges underneath; full perimeter contact is required. 400 mm depth, 130 mm total box height; fixing quantities unverified." },
       runners: { status: "assumption", description: "12.7 mm side space, 400 mm length and 45 mm envelope height are illustrative, not manufacturer specifications. Three screws per member per mounting face." },
       frontFixing: { status: "assumption", description: "18 mm overlay, 2 mm perimeter gaps, 3 mm inter-front gap; rear face at carcass front, box front in direct contact at the same Z plane; box bottom 24 mm above its decorative front bottom; four attachment screws per front." },

@@ -34,11 +34,11 @@ test("reference carcass: 900 x 500 x 18, 814 side height, 864 internal width", (
   assert.equal(r.assemblies.length, 6);
 });
 
-test("square back is inset, undersized, with explicit surface hardware", () => {
+test("square back has nominal zero edge gap, rear inset and unverified surface hardware", () => {
   const r = valid();
   const back = panel(r, "chest/carcass/back");
-  assert.deepEqual(back.dimensions, { x: 862, y: 812, z: 6 });
-  assert.deepEqual(back.position, { x: 19, y: 19, z: 484 });
+  assert.deepEqual(back.dimensions, { x: 864, y: 814, z: 6 });
+  assert.deepEqual(back.position, { x: 18, y: 18, z: 484 });
   assert.equal(r.components.filter(c => c.kind === "hardware" && c.hardwareId === "generic-unverified-back-bracket").length, 8);
 });
 
@@ -69,6 +69,10 @@ for (const [name, changes] of [
     assert.deepEqual(panel(r, "chest/carcass/top").dimensions, { x: w, y: 18, z: d });
     assert.equal(panel(r, "chest/carcass/left").dimensions.y, h - 36);
     assert.equal(panel(r, "chest/carcass/back").position.z, d - 16);
+    assert.deepEqual(panel(r, "chest/carcass/back").dimensions, { x: w - 36, y: h - 36, z: 6 });
+    assert.deepEqual(panel(r, "chest/carcass/back").position, { x: 18, y: 18, z: d - 16 });
+    assert.deepEqual(r.bom.find(l => l.componentIds.includes("chest/carcass/back"))?.cutSize,
+      { length: Math.max(w - 36, h - 36), width: Math.min(w - 36, h - 36), thickness: 6 });
     assert.equal(panel(r, "chest/drawer-1/bottom").dimensions.x, w - 36 - 25.4);
     assert.equal(panel(r, "chest/drawer-2/bottom").position.y, 26 + (h - 1) / 4);
   });
@@ -79,6 +83,8 @@ test("carcass thickness changes opening and side height without changing full-wi
   const r = valid(s);
   assert.deepEqual(panel(r, "chest/carcass/top").dimensions, { x: 900, y: 22, z: 500 });
   assert.equal(panel(r, "chest/carcass/left").dimensions.y, 806);
+  assert.deepEqual(panel(r, "chest/carcass/back").dimensions, { x: 856, y: 806, z: 6 });
+  assert.deepEqual(panel(r, "chest/carcass/back").position, { x: 22, y: 22, z: 484 });
   assert.equal(panel(r, "chest/drawer-1/bottom").dimensions.x, 830.6);
 });
 
@@ -341,4 +347,92 @@ test("unmodelled packing or extra fittings are not silently accepted", () => {
   const s = createDemoChestSpecification(), r = valid(s);
   const extra = { ...panel(r, "chest/carcass/back"), id: "unapproved-packing", position: { x: 1000, y: 0, z: 0 } };
   assert(validateFurnitureAssembly(s, [...r.components, extra]).some(i => i.code === "unsupported-component"));
+});
+
+const backContacts = [
+  { firstId: "chest/carcass/back", secondId: "chest/carcass/left", axis: "x" as const },
+  { firstId: "chest/carcass/back", secondId: "chest/carcass/right", axis: "x" as const },
+  { firstId: "chest/carcass/back", secondId: "chest/carcass/base", axis: "y" as const },
+  { firstId: "chest/carcass/back", secondId: "chest/carcass/top", axis: "y" as const },
+];
+
+test("reference back bears against all four internal faces without positive-volume intersections", () => {
+  const s = createDemoChestSpecification(), r = valid(s), back = panel(r, "chest/carcass/back");
+  assert.equal(s.construction.back.edgeClearance, 0);
+  assert.deepEqual(back.position, { x: 18, y: 18, z: 484 });
+  assert.equal(back.position.x + back.dimensions.x, 882);
+  assert.equal(back.position.y + back.dimensions.y, 832);
+  assert.equal(s.dimensions.depth - (back.position.z + back.dimensions.z), 10);
+  assert.deepEqual(validateRequiredContacts(r.components, backContacts), []);
+  assert.deepEqual(validateComponentGeometry(r.components), []);
+  const line = r.bom.find(l => l.componentIds.includes(back.id));
+  assert.deepEqual(line?.cutSize, { length: 864, width: 814, thickness: 6 });
+  assert.equal(line?.quantity, 1);
+  assert.equal(r.assumptionsVerified, false);
+  assert.equal(r.manufacturingReady, false);
+});
+
+test("zero-gap back cannot shrink away from its supporting faces even without collision", () => {
+  const s = createDemoChestSpecification(), r = valid(s), back = panel(r, "chest/carcass/back");
+  back.position.x += 1; back.position.y += 1;
+  back.dimensions.x -= 2; back.dimensions.y -= 2;
+  assert.deepEqual(validateComponentGeometry(r.components), []);
+  const missing = validateFurnitureAssembly(s, r.components).filter(i => i.code === "required-contact");
+  assert.equal(missing.length, 4);
+  assert(missing.every(i => i.componentIds?.includes(back.id)));
+});
+
+test("zero-gap back shifted into the carcass fails collision and contact checks", () => {
+  const issues = changedComponent("chest/carcass/back", c => { c.position.x += 0.5; });
+  assert(issues.some(i => i.code === "panel-overlap"));
+  assert(issues.some(i => i.code === "required-contact"));
+});
+
+for (const clearance of [0.5, 1, 2]) test(`explicit ${clearance} mm back edge clearance is preserved without claiming bearing contact`, () => {
+  const s = createDemoChestSpecification(); s.construction.back.edgeClearance = clearance;
+  const r = valid(s), back = panel(r, "chest/carcass/back");
+  assert.deepEqual(back.position, { x: 18 + clearance, y: 18 + clearance, z: 484 });
+  assert.deepEqual(back.dimensions, { x: 864 - 2 * clearance, y: 814 - 2 * clearance, z: 6 });
+  assert.equal(validateRequiredContacts(r.components, backContacts).length, 4);
+  assert.deepEqual(validateFurnitureAssembly(s, r.components), []);
+  assert.deepEqual(validateComponentGeometry(r.components), []);
+  assert.equal(r.manufacturingReady, false);
+});
+
+test("back clearance changes only back-related components, not any drawer geometry or hardware", () => {
+  const s = createDemoChestSpecification(), zero = valid(s);
+  s.construction.back.edgeClearance = 1;
+  const cleared = valid(s);
+  const drawers = (r: FurnitureResult) => r.components.filter(c => c.assemblyId.startsWith("chest/drawer-"));
+  assert.deepEqual(drawers(zero), drawers(cleared));
+});
+
+test("eight brackets remain individually positioned unverified retention allowances at zero gap", () => {
+  const s = createDemoChestSpecification(), r = valid(s);
+  const brackets = r.components.filter(c => c.kind === "hardware" && c.hardwareId === s.hardware.backBracketId);
+  assert.equal(brackets.length, 8);
+  for (const c of brackets) {
+    assert(c.kind === "hardware"); assert.equal(c.quantity, 1);
+    assert(c.name.includes("unverified fixing allowance"));
+    assert.equal(c.dimensions, undefined, "No invented physical bracket solid");
+    assert.equal(c.mounts?.length, 2);
+  }
+  assert.deepEqual(brackets[0].position, { x: 43, y: 18 + 814 / 3, z: 490 });
+  assert(r.issues.some(i => i.code === "unverified:backFixing"));
+});
+
+test("changing back edge clearance invalidates existing approval evidence", () => {
+  const s = createDemoChestSpecification(), revision = getFurnitureRevision(s);
+  for (const v of Object.values(s.verification)) Object.assign(v, { status: "verified", evidence: "Test-only record", specificationRevision: revision });
+  assert.equal(valid(s).assumptionsVerified, true);
+  s.construction.back.edgeClearance = 1;
+  const r = valid(s);
+  assert.equal(r.assumptionsVerified, false);
+  assert.notEqual(r.specificationRevision, revision);
+  assert(r.issues.some(i => i.code === "unverified:backFixing"));
+  assert.equal(r.manufacturingReady, false);
+});
+
+for (const clearance of [-1, NaN, Infinity, 407]) test(`invalid back edge clearance ${clearance} cannot produce a BOM`, () => {
+  invalid(s => { s.construction.back.edgeClearance = clearance; }, clearance === 407 ? "back-fit" : "invalid-number");
 });

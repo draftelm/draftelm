@@ -46,7 +46,7 @@ export function generateFurniture(s: FurnitureSpecification): FurnitureResult {
   hardware(carcass, "joint-screws", "Carcass joint screws (unverified selection)", s.hardware.screwId,
     4 * s.construction.carcassScrewsPerJoint, carcass.position);
   calculateBackBracketMounts(s).forEach((mounts, i) => {
-    hardware(carcass, `back-bracket-${i + 1}`, "Back surface bracket (mounting detail unverified)", s.hardware.backBracketId, 1, mounts[0].point, undefined, mounts);
+    hardware(carcass, `back-bracket-${i + 1}`, "Back surface bracket (unverified fixing allowance)", s.hardware.backBracketId, 1, mounts[0].point, undefined, mounts);
     hardware(carcass, `back-screws-${i + 1}`, "Back bracket screws", s.hardware.screwId, back.screwsPerBracket, mounts[0].point);
   });
 

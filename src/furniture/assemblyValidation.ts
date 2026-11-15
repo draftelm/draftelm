@@ -55,6 +55,13 @@ export function validateFurnitureAssembly(s: FurnitureSpecification, components:
   expectGeometry("chest/carcass/back", { x: t + back.edgeClearance, y: t + back.edgeClearance, z: d - back.rearInset - s.panels.back.thickness },
     { x: w - 2 * t - 2 * back.edgeClearance, y: h - 2 * t - 2 * back.edgeClearance, z: s.panels.back.thickness }, "panel");
   for (const side of ["left", "right"]) for (const end of ["base", "top"]) contact(`chest/carcass/${side}`, `chest/carcass/${end}`, "y");
+  // Nominal zero clearance means four required edge-to-internal-face contacts.
+  // Positive configured clearance deliberately removes those bearing contacts;
+  // the separately validated bracket allowance still does not prove fixing strength.
+  if (back.edgeClearance === 0) {
+    for (const side of ["left", "right"]) contact("chest/carcass/back", `chest/carcass/${side}`, "x");
+    for (const end of ["base", "top"]) contact("chest/carcass/back", `chest/carcass/${end}`, "y");
+  }
 
   for (const row of calculateDrawerLayout(s)) {
     const id = row.id, p = row.box.position, size = row.box.dimensions;

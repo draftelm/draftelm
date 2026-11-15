@@ -94,3 +94,15 @@ test("parameter recalculation uses the engine's current dimensions and does not 
   near(model.panels.find(p => p.component.id === "chest/carcass/top")!.size[0], 1);
   assert(model.panels.every(p => !p.component.id.startsWith("chest/drawer-4/")));
 });
+
+test("preview uses the nominal zero-gap back and its updated BOM link", () => {
+  const result = reference(), model = createPreviewModel(result);
+  const back = model.panels.find(p => p.component.id === "chest/carcass/back")!;
+  near(back.size[0], 0.864); near(back.size[1], 0.814); near(back.size[2], 0.006);
+  near(back.center[0] - back.size[0] / 2, 0.018);
+  near(back.center[1] - back.size[1] / 2, 0.018);
+  near(back.center[2] - back.size[2] / 2, 0.484);
+  const line = result.bom.find(l => l.componentIds.includes(back.component.id))!;
+  assert.deepEqual(line.cutSize, { length: 864, width: 814, thickness: 6 });
+  assert.equal(selectPanels(line.componentIds, model.panels).activeId, back.component.id);
+});

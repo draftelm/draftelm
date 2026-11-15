@@ -1,7 +1,7 @@
 import type { FurnitureSpecification } from "./types";
 
 /** Bump when engineering formulas/constraints change, even if the input schema does not. */
-const ENGINE_REVISION = "drawer-chest-contact-layout-2";
+const ENGINE_REVISION = "drawer-chest-contact-layout-3-zero-gap-back";
 
 /** Collision-free canonical snapshot, not a security signature. Portable to browser/server.
  * Conservative policy: any non-verification specification change invalidates all approvals.

@@ -27,7 +27,7 @@ Carcass width W = 900, height H = 850, depth D = 500, thickness t = 18:
 - Top/base: W × D × t = **900 × 500 × 18**; base Y = 0, top Y = H − t = 832.
 - Sides between top/base: height H − 2t = **814**, depth 500, thickness 18.
 - Internal clear width W − 2t = **864**.
-- Back: square-cut, 6 mm thick, **no groove/rebate**. At 1 mm edge clearance its cut size is **862 × 812 × 6**, X = 19…881, Y = 19…831, Z = 484…490. Its rear face is 10 mm inward from D = 500.
+- Back: square-cut, 6 mm thick, **no groove/rebate**. At the prototype default **0 mm nominal edge clearance**, its cut size is **864 × 814 × 6**, X = 18…882, Y = 18…832, Z = 484…490. The back meets the internal faces of both sides, top and base without positive-volume intersection. Its rear face is 10 mm inward from D = 500.
 
 Face contact is distinguished from positive-volume intersection with a computational tolerance of **0.000001 mm**. This is not a manufacturing tolerance. No cut rounding, stock nesting, grain orientation decision or edge-treatment allowance is implied.
 
@@ -71,20 +71,28 @@ Default runner length is 400 mm, height 45 mm, front offset 0 mm and bottom offs
 
 Bottom construction is explicitly `under-box` with `bottomFixing: "screws-through-bottom"`. Each bottom is a full-footprint sheet; all four wall lower faces must contact its upper face. It is neither captive in a groove nor supported on an unmodelled ledge. Default fixing allowance is eight screws, assumed driven upwards through the bottom into the wall edges. At least four are required by the supported configuration (one allowance per wall); this minimum is **not a strength or screw-spacing calculation**. Exact screw locations, lengths, pilot holes, heads, edge distances, adhesive, plywood grade and bending/withdrawal capacity must be approved. The clear internal footprint is **814.6 × 376 mm**. In particular, reducing bottom thickness may still give geometrically valid output, but invalidates all existing approval evidence and makes no structural claim.
 
+## Nominal back fit and separate manufacturing tolerances
+
+`construction.back.edgeClearance` remains an explicit configurable **per-edge nominal design gap**, now defaulting to **0 mm**. For carcass panel thickness t and configured clearance c, back width = W − 2t − 2c, height = H − 2t − 2c, and minimum X/Y = t + c. Rear inset and back thickness independently determine Z; the 10 mm rear inset is unchanged. Changing width, height, depth or carcass thickness updates the geometry, anchors and BOM automatically.
+
+Zero clearance requires four positive-area edge-to-face contacts in assembly validation. A detached or undersized back cannot pass merely because it does not collide. For c > 0, edge contacts are intentionally absent and are not asserted; exact configured back placement and the unverified fixing allowances are still checked. Negative/non-finite clearances and dimensions consumed by excessive clearance are rejected. Positive-volume intersections remain errors in both modes.
+
+**Nominal zero gap is not a tolerance, interference fit, structural verification, or a production cutting instruction.** Stock thickness variation, squareness, cutting accuracy, finish buildup, moisture movement and assembly sequence can make a theoretical zero-gap fit impractical. These require separate manufacturing-fit approval, measurements and a decided tolerance/clearance policy. The engine neither invents machining tolerances nor silently adds them to nominal panel dimensions. A positive design gap must be explicitly configured and invalidates previous revision-bound approval evidence. The 0.000001 mm contact-comparison tolerance is only numerical noise handling.
+
 ## Individually positioned recessed-back brackets
 
-Eight quantity-one bracket components replace the old aggregate at a single point. `calculateBackBracketMounts` distributes equal numbers along all four edges: default two per edge at 1/3 and 2/3 of the back's edge span. Supported count: 4–64, divisible by four. A configurable **25 mm** offset places each back-face anchor inward from its corresponding back edge.
+The existing eight quantity-one bracket components are retained explicitly as an **unverified fixing/retention allowance**, not an approved fixing count. Nominal contact locates the panel at its edges but does not establish positive restraint along Z or racking/load adequacy; therefore zero gap alone does not justify deleting the fixings or certifying eight brackets as sufficient. A future engineering review must select the actual retention arrangement and count. `calculateBackBracketMounts` distributes equal numbers along all four edges: default two per edge at 1/3 and 2/3 of the back's edge span. Supported count: 4–64, divisible by four. A configurable **25 mm** offset places each back-face anchor inward from its corresponding back edge.
 
 Each component contains two explicit mounting-face anchors: one on the back rear face (Z = 490) and one on the appropriate carcass inner face. These are **not hole centres**. In the reference chest:
 
 | Edge | Back-face anchors (X, Y, Z), mm | Corresponding carcass anchor |
 | --- | --- | --- |
-| Left | (44, 289.666667, 490), (44, 560.333333, 490) | Same Y/Z, X = 18 |
-| Right | (856, 289.666667, 490), (856, 560.333333, 490) | Same Y/Z, X = 882 |
-| Base | (306.333333, 44, 490), (593.666667, 44, 490) | Same X/Z, Y = 18 |
-| Top | (306.333333, 806, 490), (593.666667, 806, 490) | Same X/Z, Y = 832 |
+| Left | (43, 289.333333, 490), (43, 560.666667, 490) | Same Y/Z, X = 18 |
+| Right | (857, 289.333333, 490), (857, 560.666667, 490) | Same Y/Z, X = 882 |
+| Base | (306, 43, 490), (594, 43, 490) | Same X/Z, Y = 18 |
+| Top | (306, 807, 490), (594, 807, 490) | Same X/Z, Y = 832 |
 
-Back-to-carcass edge gap is 1 mm, so a bracket must bridge **26 mm between these illustrative anchor coordinates** in the corresponding X/Y direction. The selected bracket must be designed/verified to serve that arrangement; these anchors do not certify a commercially available fitting. Anchor locations are checked against both panels and the configured distribution. Missing/displaced brackets and unsupported counts are errors. Each gets a separate two-screw allowance (at least one per attachment face).
+At nominal zero edge gap, the illustrative back/carcass anchors are **25 mm apart** in the corresponding X/Y direction. With a configured positive edge clearance c, that anchor separation becomes 25 + c mm. This is an anchor-coordinate separation, not a verified bracket dimension. The selected bracket must be designed/verified to serve that arrangement; these anchors do not certify a commercially available fitting. Anchor locations are checked against both panels and the configured distribution. Missing/displaced brackets and unsupported counts are errors. Each gets a separate two-screw allowance (at least one per attachment face).
 
 Actual bracket leg sizes, thickness, bend orientation, screw-hole offsets, installation access within the 10 mm rear recess, material strength, screw engagement into the 6 mm back, and racking resistance remain unverified. Brackets therefore have no claimed solid envelope. Their future physical shape must be checked for interference before release; anchor validation alone is not a bracket fit approval.
 
@@ -96,7 +104,7 @@ One root assembly, one carcass assembly and four drawer assemblies contain **29 
 | --- | ---: | --- |
 | Carcass top/base | 2 | 900 × 500 × 18 |
 | Carcass sides | 2 | 814 × 500 × 18 |
-| Recessed back | 1 | 862 × 812 × 6 |
+| Recessed back | 1 | 864 × 814 × 6 |
 | Drawer sides | 8 | 400 × 124 × 12 |
 | Drawer box front/rear | 8 | 814.6 × 124 × 12 |
 | Drawer bottoms | 4 | 838.6 × 400 × 6 |
@@ -108,9 +116,10 @@ Eight runner components mean four left/right pairs. Reference fixing allowances 
 
 `validateComponentGeometry` checks every available panel or hardware envelope against every other available solid/envelope. Positive-volume intersection is reported as `panel-overlap` or `hardware-interference`; touching faces are permitted. Schematic fixing/bracket anchors have no solid to collide. Other checks include finite positive geometry, quantities, duplicate IDs and panel-thickness consistency.
 
-`validateFurnitureAssembly` additionally checks the specification-derived positions/dimensions of all 29 panels and eight runners, exact required hardware definitions/quantities, and individually located bracket anchors. Unknown components/packing, missing required components, or substituted fittings are rejected. `validateRequiredContacts` checks **56 positive-area face relationships** in the reference chest:
+`validateFurnitureAssembly` additionally checks the specification-derived positions/dimensions of all 29 panels and eight runners, exact required hardware definitions/quantities, and individually located bracket anchors. Unknown components/packing, missing required components, or substituted fittings are rejected. `validateRequiredContacts` checks **60 positive-area face relationships** in the zero-gap reference chest:
 
 - four carcass side-to-top/base contacts;
+- four back-edge contacts with the internal side/top/base faces, required when configured edge clearance is exactly 0;
 - per drawer: four wall-to-bottom contacts, four wall-corner contacts, one decorative-to-box front contact, and four runner-to-drawer/cabinet contacts.
 
 Edge/corner touching, gaps, and penetration do not satisfy a required face contact. Front coverage, the shared vertical layout and attachment margins are checked independently of collision detection. These checks establish nominal assembly geometry, not fastener penetration, tool access, joint strength, moving clearances or manufacturing tolerances.
