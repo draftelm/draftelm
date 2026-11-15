@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import PanelObject from "./PanelObject";
+import AnimatedDrawer from "./AnimatedDrawer";
+import { drawerMotionBounds } from "./drawerMotion";
+import type { DrawerGroup, DrawerPositions } from "./drawerMotion";
 import type { PanelRole, PreviewModel } from "./viewerGeometry";
 
 function CameraControls({ bounds, resetKey }: { bounds: NonNullable<PreviewModel["bounds"]>; resetKey: number }) {
@@ -40,14 +43,19 @@ function CameraControls({ bounds, resetKey }: { bounds: NonNullable<PreviewModel
 
 interface Props {
   model: PreviewModel;
+  drawers: DrawerGroup[];
+  positions: DrawerPositions;
+  maximumMm: number;
   visible: Record<PanelRole, boolean>;
   selectedIds: string[];
   onSelect: (ids: string[]) => void;
   resetKey: number;
 }
 
-export default function FurnitureCanvas({ model, visible, selectedIds, onSelect, resetKey }: Props) {
-  if (!model.bounds || model.error) return <p className="p-8">{model.error || "No panels to display."}</p>;
+export default function FurnitureCanvas({ model, drawers, positions, maximumMm, visible, selectedIds, onSelect, resetKey }: Props) {
+  const bounds = useMemo(() => drawerMotionBounds(model, drawers, maximumMm), [model, drawers, maximumMm]);
+  const movingIds = new Set(drawers.flatMap(d => d.panels.map(p => p.component.id)));
+  if (!bounds || !model.bounds || model.error) return <p className="p-8">{model.error || "No panels to display."}</p>;
   return (
     <Canvas
       frameloop="demand"
@@ -61,9 +69,12 @@ export default function FurnitureCanvas({ model, visible, selectedIds, onSelect,
       <ambientLight intensity={1.4} />
       <directionalLight position={[-2, 3, -4]} intensity={2.5} />
       <directionalLight position={[2, 1, 3]} intensity={1.5} />
-      <CameraControls bounds={model.bounds} resetKey={resetKey} />
-      {model.panels.filter(panel => visible[panel.role]).map(panel => (
+      <CameraControls bounds={bounds} resetKey={resetKey} />
+      {model.panels.filter(panel => !movingIds.has(panel.component.id) && visible[panel.role]).map(panel => (
         <PanelObject key={panel.component.id} panel={panel} selected={selectedIds.includes(panel.component.id)} onSelect={onSelect} />
+      ))}
+      {drawers.map(drawer => (
+        <AnimatedDrawer key={drawer.id} drawer={drawer} opening={positions[drawer.id] ?? 0} maximumMm={maximumMm} visible={visible} highlightedIds={selectedIds} onSelect={onSelect} />
       ))}
     </Canvas>
   );

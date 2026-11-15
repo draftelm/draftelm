@@ -6,11 +6,13 @@ interface Props {
   result: FurnitureResult;
   specification: FurnitureSpecification;
   selection: PanelSelection;
+  highlightedCount: number;
+  parentDrawerName?: string;
   onSelect: (ids: string[], activeId?: string) => void;
 }
 const mm = (n: number) => new Intl.NumberFormat("en-GB", { maximumFractionDigits: 4 }).format(n);
 
-export default function ComponentInspector({ model, result, specification, selection, onSelect }: Props) {
+export default function ComponentInspector({ model, result, specification, selection, highlightedCount, parentDrawerName, onSelect }: Props) {
   const panel = model.panels.find(p => p.component.id === selection.activeId)?.component;
   const assemblyName = (id: string) => result.assemblies.find(a => a.id === id)?.name ?? id;
   const material = panel && specification.materials.find(m => m.id === panel.materialId);
@@ -25,16 +27,17 @@ export default function ComponentInspector({ model, result, specification, selec
       </select>
       {selection.ids.length > 1 && (
         <div className="mt-3 text-sm">
-          <p>{selection.ids.length} panels highlighted. Inspect one:</p>
+          <p>{highlightedCount} panels highlighted. Inspect a linked part:</p>
           <div className="mt-2 flex flex-wrap gap-2">{selection.ids.map(id => <button type="button" key={id} className="rounded border border-white/20 px-2 py-1" onClick={() => onSelect(selection.ids, id)}>{id.split("/").slice(-2).join(" / ")}</button>)}</div>
         </div>
       )}
+      {parentDrawerName && <p className="mt-3 text-sm text-amber-200">Parent drawer highlighted: {parentDrawerName}</p>}
       {panel ? (
         <dl className="mt-5 space-y-4 text-sm" aria-live="polite">
           <div><dt className="text-slate-400">Part</dt><dd className="mt-1">{panel.name}</dd></div>
           <div><dt className="text-slate-400">Component ID</dt><dd className="mt-1 break-all font-mono text-xs">{panel.id}</dd></div>
           <div><dt className="text-slate-400">Dimensions · X × Y × Z</dt><dd className="mt-1">{mm(panel.dimensions.x)} × {mm(panel.dimensions.y)} × {mm(panel.dimensions.z)} mm</dd></div>
-          <div><dt className="text-slate-400">Global minimum corner · X, Y, Z</dt><dd className="mt-1">{mm(panel.position.x)}, {mm(panel.position.y)}, {mm(panel.position.z)} mm</dd></div>
+          <div><dt className="text-slate-400">Engineering minimum corner · X, Y, Z (closed)</dt><dd className="mt-1">{mm(panel.position.x)}, {mm(panel.position.y)}, {mm(panel.position.z)} mm</dd></div>
           <div><dt className="text-slate-400">Material</dt><dd className="mt-1">{material?.name ?? panel.materialId}<span className="mt-1 block font-mono text-xs text-slate-400">{panel.materialId}</span></dd></div>
           <div><dt className="text-slate-400">Assembly</dt><dd className="mt-1">{assemblyName(panel.assemblyId)}<span className="mt-1 block break-all font-mono text-xs text-slate-400">{panel.assemblyId}</span></dd></div>
           <div><dt className="text-slate-400">Stock thickness</dt><dd className="mt-1">{mm(panel.thickness)} mm · {panel.thicknessAxis.toUpperCase()} axis</dd></div>

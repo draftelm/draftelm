@@ -8,6 +8,8 @@ The independent [furniture engineering engine](Docs/furniture-engine.md) adds Ph
 
 The [Phase 2 furniture preview](Docs/furniture-preview.md) is available at `/furniture`: inspect the engine-generated panels in 3D, adjust carcass dimensions and drawer count, and select linked BOM components. It remains a preliminary design, not a manufacturing release.
 
+Phase 3A adds independent drawer opening/closing and percentage sliders, with configurable demonstration travel and Reset Drawers. These are viewer-only transforms, not verified runner movement or changes to engineering geometry.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

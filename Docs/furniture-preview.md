@@ -1,4 +1,4 @@
-# Phase 2 — interactive furniture preview
+# Phase 3A — interactive furniture preview and drawer movement
 
 Open `/furniture`, or follow **Furniture preview** in navigation. The original `/` mechanical-part workflow remains available through the DRAFTELM home link and is otherwise unchanged.
 
@@ -17,16 +17,32 @@ One scene unit is one metre. The world axes are unchanged: **X right, Y up, Z re
 
 Each mesh's React key, Three object name and `userData.componentId` use the stable engine component ID. `userData.assemblyId` links it to its assembly. Thin outlines use the same box extents and do not add engineering geometry or modify gaps. Carcass, drawer boxes, decorative fronts and back use distinct simple colours; selected panels are amber.
 
-`FurnitureCanvas` uses React Three Fiber and Three.js's bundled OrbitControls. The initial camera views the front from negative Z. Camera framing derives only from the actual rendered assembly's bounding box, including projecting fronts. Moving the camera does not transform the furniture. On model size or viewport changes the view refits; **Reset view** restores framing. Rendering is on demand, with damping updates while controls move; pixel ratio is capped at 2. Three.js geometry, control listeners and outline buffers are released on replacement/unmount.
+`FurnitureCanvas` uses React Three Fiber and Three.js's bundled OrbitControls. The initial camera views the front from negative Z. Camera framing derives only from the actual rendered assembly's bounding box, including projecting fronts. Moving the camera does not transform the furniture. The camera includes the full demonstration travel envelope, so changing drawer target positions does not reframe it. On model size, maximum demo travel or viewport changes the view refits; **Reset view** restores framing. Rendering is on demand, with damping updates while controls move; pixel ratio is capped at 2. Three.js geometry, control listeners and outline buffers are released on replacement/unmount.
 
 ## Inspection and interaction
 
 - Drag to orbit, right-drag to pan, scroll to zoom. Touch: one-finger orbit, two-finger pan/zoom.
-- Click a panel to highlight it. Camera drags beyond the click threshold do not select panels; a blank canvas click clears selection.
+- Click a panel to inspect it; if it belongs to a drawer, its whole parent drawer assembly is highlighted. Camera drags beyond the click threshold do not select panels; a blank canvas click clears selection.
 - The labelled Component selector provides a keyboard-accessible alternative for inspecting every panel, including occluded parts. Inspection shows name, stable ID, exact assembled X/Y/Z dimensions, minimum-corner position, material identifier/name, assembly and stock thickness.
-- Panel BOM rows highlight all linked components, including shared blanks such as the top/base pair. A selected line can contain multiple panels; its active inspector can switch between them. The corresponding BOM rows also reflect selections made in the model or selector.
+- Panel BOM rows retain all linked component selections, including shared blanks such as the top/base pair. Drawer-linked selections also highlight every panel of their parent drawer assembly; a line shared across drawers highlights each affected drawer. A selected line can contain multiple panels; its active inspector can switch between them. The corresponding BOM rows also reflect selections made in the model or selector.
 - Visibility toggles hide outer layers to expose inner boxes and the back. Selecting a part through the component selector or BOM reveals its layer. It does not remove occluding geometry from other layers: hide those layers to inspect internal parts. Hiding a layer does not change the specification/BOM or the positions of any part.
-- Width, height, depth and count edits immediately recalculate through the furniture engine. Existing selection is cleared on parameter edits. **Reset specification** restores the four-drawer reference model, layers and camera.
+- Width, height, depth and count edits immediately recalculate through the furniture engine. Existing selection and all drawer movement targets are cleared on parameter edits. Removed drawers cannot retain stale motion state or reopen when reintroduced. **Reset specification** restores the four-drawer reference model, layers, camera and default demo travel, with every drawer closed.
+
+## Drawer movement — visual transforms only
+
+Select any drawer in **Drawer movement** to show its Open/Close button and opening slider (0–100%). Multiple drawers may be selected and open at the same time. Switching selection never closes another drawer. A partial opening toggles to closed with the Close button; the slider can choose any integer percentage. Controls display the **target** percentage; the rendered group eases towards it.
+
+Movement groups are built from the engine's assembly relationships and listed component IDs. The supported schema-v2 drawer contains one decorative front and five box panels. All six meshes retain their exact closed-coordinate geometry beneath one group positioned at the scene origin. Only that group's Z translation is animated. Its X/Y offsets remain zero. Carcass and recessed-back panels have no moving parent. No engine dimensions, component positions, assembly definitions, approvals or BOM quantities are changed, and no hardware meshes are added.
+
+`Demo maximum travel` is a separate viewer setting, default **300 mm**, with a **400 mm presentation cap**. These numbers are illustrative and are not derived from, or verified against, runner travel. The effective maximum is clamped to 0–400 mm; blank/non-finite input gives 0 mm, negative input gives 0 mm, and larger input gives 400 mm, with visible input feedback. Translation is (0, 0, −openingFraction × effectiveMaximum / 1000) in scene metres. Lowering the limit clamps an already-open group before its next rendered frame. At zero travel the opening controls are disabled.
+
+Animation uses frame-time-based exponential easing with a bounded frame delta, no overshoot, and an exact final snap within 0.01 mm. Demand rendering is invalidated when targets change and while an animation is unfinished, including closing and reversals. Animation never writes to the engine's component objects. Camera bounds include the possible opening envelope and do not change for each animation frame or slider target.
+
+**Reset Drawers** smoothly returns every current drawer to zero without changing the specification, BOM, selected panels, visibility or demo setting. Dimension/count edits use a conservative policy: all drawers close and their stored targets are cleared; changed model revisions mount new groups at closed positions. New drawers start closed, deleted IDs are removed, and invalid configurations expose no movement groups. State helpers also reconcile IDs so stale or unknown drawer IDs cannot acquire a target.
+
+A panel selected through the canvas, inspector or BOM identifies its parent drawer and highlights all six parent panels. The inspector continues showing the selected part's **engineering closed-position coordinates**, explicitly labelled as such. Grouped BOM rows can select several drawers; each then has independent controls. Hiding panels does not remove their movement group or discard its target. Hidden-layer controls report that state; revealing the layer shows the current transformed panels. BOM/inspector selection can reveal the selected part's layer as before. Component inspection, target controls and reset remain usable when WebGL initialization fails; a renderer retry recreates its groups and eases towards their stored targets.
+
+**Limitations:** this is not verified kinematics. There is no animated collision test, travel-stop/load/retention verification, anti-tip or stability calculation, verified runner extension, detailed hardware, or exploded view. Multiple open drawers are a visual scenario, not a claim of safe physical use. The engineering collision/contact checks and approval revision still concern the original closed assembly. `manufacturingReady` remains false. The presentation travel cap is a rendering policy, not a mechanical safety limit.
 
 ## Invalid data, status and limits
 
@@ -36,13 +52,16 @@ The page persistently states **Preliminary design — not manufacturing-ready** 
 
 WebGL is required for 3D. A Canvas fallback and a local error boundary leave parameters, component inspection and BOM usable if graphics initialization fails, with a retry action for renderer errors. Graphics context loss/device/driver behaviour is browser-dependent. There is no GPU-based engineering collision calculation: the engine remains responsible for nominal collision/contact validation.
 
-This is a static closed-assembly preview. Drawer movement, swept clearances, exploded geometry, photorealistic materials, stock grain/edge banding, physical hardware models, manufacturing approval, machining, CNC, STEP export and shop drawings are outside this phase. Layer toggles are presentation only, not a different engineered assembly.
+Movement is demonstration-only. Swept-clearance analysis, exploded geometry, photorealistic materials, stock grain/edge banding, physical hardware models, manufacturing approval, machining, CNC, STEP export and shop drawings are outside this phase. Layer toggles are presentation only, not a different engineered assembly.
 
 ## Architecture and checks
 
 - `src/app/furniture/page.tsx`: separate route and metadata.
-- `FurniturePreview.tsx`: specification controls, validation and shared selection/layer state; dynamically imports the browser-only Canvas.
+- `FurniturePreview.tsx`: specification controls, validation and shared selection/layer/movement state; dynamically imports the browser-only Canvas.
 - `FurnitureCanvas.tsx`: rendering, lighting, camera and OrbitControls.
+- `drawerMotion.ts`: pure assembly grouping, parent selection, clamped target state, animation easing and camera-envelope functions.
+- `AnimatedDrawer.tsx`: viewer-only negative-Z group transformation, with one group per drawer.
+- `DrawerControls.tsx`: independent selection, Open/Close, 0–100% sliders, configurable demo travel and Reset Drawers.
 - `PanelObject.tsx`: one independently selectable mesh and outline per engine panel.
 - `ComponentInspector.tsx` / `FurnitureBOM.tsx`: linked accessible inspection.
 - `ViewerBoundary.tsx`: renderer failure isolation.
@@ -50,7 +69,7 @@ This is a static closed-assembly preview. Drawer movement, swept clearances, exp
 
 Dependencies added: `three`, React-19-compatible `@react-three/fiber`, and development-only `@types/three`. OrbitControls is imported from Three's own addons; no additional scene/UI framework is needed. The furniture engine and mechanical engineering logic are unchanged.
 
-Run `npm test`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`. Node tests now discover every `tests/*.test.ts` file. The existing 72 engineering tests are retained; 15 additional tests cover all 29 converted bounds, negative Z and panel orientations, global rather than relative positions, scene bounds, role grouping, single/multiple/stale selection, BOM IDs, invalid inputs and recalculation. Tests compile to a unique OS temporary directory and leave no test build output in the project.
+Run `npm test`, `npx tsc --noEmit`, `npm run lint`, and `npm run build`. Node tests now discover every `tests/*.test.ts` file. The existing engineering and viewer tests are retained, covering all 29 converted bounds, negative Z and panel orientations, global rather than relative positions, scene bounds, role grouping, single/multiple/stale selection, BOM IDs, invalid inputs and recalculation. Additional movement tests cover six-panel assembly grouping, independent negative-Z offsets, state reconciliation/reset, finite clamping, monotonic animation and limit reductions, full-parent highlights, camera envelopes, and unchanged engine/BOM data. Tests compile to a unique OS temporary directory and leave no test build output in the project.
 
 Browser verification uses headless Chrome with software WebGL: actual mesh clicks, orbit/pan/zoom image changes, grouped BOM selection, layer reveal, updated dimensions/count, invalid-input recovery, mobile overflow and navigation to the original workflow. This supplements unit tests; it does not certify hardware or manufacturing geometry.
 
