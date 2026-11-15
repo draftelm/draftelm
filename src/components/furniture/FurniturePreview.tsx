@@ -10,6 +10,7 @@ import FurnitureBOM from "./FurnitureBOM";
 import ViewerBoundary from "./ViewerBoundary";
 import DrawerControls from "./DrawerControls";
 import ExplosionControls from "./ExplosionControls";
+import DrawingPanel from "../drawings/DrawingPanel";
 import type { ExplosionMode } from "./explosion";
 import { clampDemoTravel, clampOpening, DEFAULT_DEMO_TRAVEL_MM, drawerSelection, groupDrawerPanels, reconcileDrawerPositions, resetDrawerPositions, setDrawerOpening } from "./drawerMotion";
 import type { DrawerPositions } from "./drawerMotion";
@@ -85,7 +86,7 @@ export default function FurniturePreview() {
   return (
     <div className="mx-auto max-w-[1600px] px-4 pb-12 sm:px-8">
       <header className="mb-6 mt-8 flex flex-wrap items-start justify-between gap-4">
-        <div><p className="text-sm text-blue-200">Furniture engineering · Phase 3B</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Chest of drawers</h1><p className="mt-2 text-sm text-slate-400">Parametric assembly · millimetres · single drawer column</p></div>
+        <div><p className="text-sm text-blue-200">Furniture engineering · Phase 4A</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Chest of drawers</h1><p className="mt-2 text-sm text-slate-400">Parametric assembly · millimetres · single drawer column</p></div>
         <div className="max-w-md rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100"><strong>Preliminary design — not manufacturing-ready</strong><p className="mt-1 text-amber-100/75">Materials, hardware, fixings, loads and stability remain unverified.</p></div>
       </header>
       <div className="grid items-start gap-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
@@ -120,6 +121,7 @@ export default function FurniturePreview() {
       <DrawerControls suspended={explosionAmount > 0 || explosionBusy} drawers={drawers} positions={positions} selectedIds={motionSelection.drawerIds} travelInput={travelInput} visible={visible} onSelect={selectDrawer} onOpening={(id, value) => setDrawerPositions(current => setDrawerOpening(drawers, current, id, value))} onTravel={setTravelInput} onReset={() => setDrawerPositions(resetDrawerPositions(drawers))} />
       {errors.length > 0 && <section role="alert" className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-5"><h2 className="font-medium text-red-200">Parameters need attention</h2><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-100">{errors.map((issue, i) => <li key={`${issue.code}-${i}`}>{issue.message}</li>)}</ul><p className="mt-3 text-sm text-red-100">The current preview and BOM are withheld. Adjust the values or reset the specification.</p></section>}
       <details className="mt-5 rounded-xl border border-white/10 p-4 text-sm"><summary className="cursor-pointer text-slate-300">Engineering assumptions & limitations ({assumptions.length})</summary><ul className="mt-3 list-disc space-y-2 pl-5 text-slate-400">{assumptions.map(issue => <li key={issue.code}>{issue.message}</li>)}</ul></details>
+      <DrawingPanel result={result} />
       <FurnitureBOM result={result} selection={selection} onSelect={onSelect} />
     </div>
   );

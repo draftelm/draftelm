@@ -12,7 +12,7 @@ const output = mkdtempSync(join(tmpdir(), "draftelm-furniture-tests-"));
 try {
   execFileSync(process.execPath, [require.resolve("typescript/bin/tsc"), "--project", "tests/tsconfig.json", "--outDir", output], { cwd: root, stdio: "inherit" });
   const tests = readdirSync(join(output, "tests")).filter(name => name.endsWith(".test.js")).map(name => join(output, "tests", name));
-  execFileSync(process.execPath, ["--test", ...tests], { cwd: root, stdio: "inherit" });
+  execFileSync(process.execPath, ["--test", ...tests], { cwd: root, stdio: "inherit", env: { ...process.env, NODE_PATH: join(root, "node_modules") } });
 } catch (error) {
   process.exitCode = typeof error.status === "number" ? error.status : 1;
 } finally {

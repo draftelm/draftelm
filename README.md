@@ -12,6 +12,8 @@ Phase 3A adds independent drawer opening/closing and percentage sliders, with co
 
 Phase 3B adds Assembly and Individual Panels exploded views, with staged visual separation and independent explosion reset. Saved drawer openings return after reassembly; the engine geometry and BOM remain unchanged.
 
+The [Phase 4A drawing foundation](Docs/drawing-foundation.md) adds preliminary A3 general-assembly and carcass-component sheets, configurable projection placement, workshop/formal templates, and vector PDF export. The BS 8888 / ISO-style template targets BS 8888:2025 but its compliance is not yet verified against licensed standards.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
