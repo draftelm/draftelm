@@ -4,9 +4,10 @@ import { Component } from "react";
 import type { ReactNode } from "react";
 
 /** Keep the specification, component list and BOM available if WebGL initialization fails. */
-export default class ViewerBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+export default class ViewerBoundary extends Component<{ children: ReactNode; onFailure?: () => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { this.props.onFailure?.(); }
   render() {
     if (this.state.failed) return (
       <div role="alert" className="p-8 text-sm text-amber-200">

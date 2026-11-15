@@ -10,6 +10,8 @@ The [Phase 2 furniture preview](Docs/furniture-preview.md) is available at `/fur
 
 Phase 3A adds independent drawer opening/closing and percentage sliders, with configurable demonstration travel and Reset Drawers. These are viewer-only transforms, not verified runner movement or changes to engineering geometry.
 
+Phase 3B adds Assembly and Individual Panels exploded views, with staged visual separation and independent explosion reset. Saved drawer openings return after reassembly; the engine geometry and BOM remain unchanged.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

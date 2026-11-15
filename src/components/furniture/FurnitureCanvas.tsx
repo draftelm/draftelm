@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PerspectiveCamera } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import PanelObject from "./PanelObject";
-import AnimatedDrawer from "./AnimatedDrawer";
+import SceneTransforms from "./SceneTransforms";
+import { createExplosionPlan, explosionBounds } from "./explosion";
+import type { ExplosionMode } from "./explosion";
 import { drawerMotionBounds } from "./drawerMotion";
 import type { DrawerGroup, DrawerPositions } from "./drawerMotion";
 import type { PanelRole, PreviewModel } from "./viewerGeometry";
@@ -21,9 +22,10 @@ function CameraControls({ bounds, resetKey }: { bounds: NonNullable<PreviewModel
     const radius = Math.hypot(...bounds.size) / 2;
     const verticalFov = camera instanceof PerspectiveCamera ? camera.fov * Math.PI / 360 : Math.PI / 8;
     const halfFov = Math.min(verticalFov, Math.atan(Math.tan(verticalFov) * size.width / Math.max(size.height, 1)));
-    const distance = radius / Math.sin(halfFov) * 1.2;
+    const distance = radius / Math.sin(halfFov) * 1.08;
     // Front is negative Z. Move the camera, never mirror/rotate furniture coordinates.
-    camera.position.set(bounds.center[0] + distance * 0.5, bounds.center[1] + distance * 0.3, bounds.center[2] - distance);
+    const directionLength = Math.hypot(0.5, 0.3, 1);
+    camera.position.set(bounds.center[0] + distance * 0.5 / directionLength, bounds.center[1] + distance * 0.3 / directionLength, bounds.center[2] - distance / directionLength);
     camera.near = Math.max(radius / 1000, 0.0001);
     camera.far = Math.max(distance * 30, 100);
     camera.updateProjectionMatrix();
@@ -41,6 +43,22 @@ function CameraControls({ bounds, resetKey }: { bounds: NonNullable<PreviewModel
   return null;
 }
 
+function RendererUnavailable({ onReady }: { onReady: (ready: boolean) => void }) {
+  useEffect(() => { onReady(false); }, [onReady]);
+  return <p className="p-8">WebGL is unavailable. You can still inspect components and the BOM below.</p>;
+}
+function RendererStatus({ onReady }: { onReady: (ready: boolean) => void }) {
+  const get = useThree(s => s.get);
+  useEffect(() => {
+    const canvas = get().gl.domElement;
+    const lost = () => onReady(false), restored = () => onReady(true);
+    canvas.addEventListener("webglcontextlost", lost);
+    canvas.addEventListener("webglcontextrestored", restored);
+    return () => { canvas.removeEventListener("webglcontextlost", lost); canvas.removeEventListener("webglcontextrestored", restored); };
+  }, [get, onReady]);
+  return null;
+}
+
 interface Props {
   model: PreviewModel;
   drawers: DrawerGroup[];
@@ -50,11 +68,17 @@ interface Props {
   selectedIds: string[];
   onSelect: (ids: string[]) => void;
   resetKey: number;
+  explosionMode: ExplosionMode;
+  explosionAmount: number;
+  explosionBusy: boolean;
+  onExplosionBusy: (busy: boolean) => void;
+  onRendererReady: (ready: boolean) => void;
 }
 
-export default function FurnitureCanvas({ model, drawers, positions, maximumMm, visible, selectedIds, onSelect, resetKey }: Props) {
-  const bounds = useMemo(() => drawerMotionBounds(model, drawers, maximumMm), [model, drawers, maximumMm]);
-  const movingIds = new Set(drawers.flatMap(d => d.panels.map(p => p.component.id)));
+export default function FurnitureCanvas({ model, drawers, positions, maximumMm, visible, selectedIds, onSelect, resetKey, explosionMode, explosionAmount, explosionBusy, onExplosionBusy, onRendererReady }: Props) {
+  const plan = useMemo(() => createExplosionPlan(model, drawers), [model, drawers]);
+  const expanded = explosionAmount > 0 || explosionBusy;
+  const bounds = useMemo(() => expanded ? explosionBounds(model, drawers, plan, maximumMm) : drawerMotionBounds(model, drawers, maximumMm), [expanded, model, drawers, plan, maximumMm]);
   if (!bounds || !model.bounds || model.error) return <p className="p-8">{model.error || "No panels to display."}</p>;
   return (
     <Canvas
@@ -62,7 +86,8 @@ export default function FurnitureCanvas({ model, drawers, positions, maximumMm, 
       dpr={[1, 2]}
       camera={{ fov: 40, near: 0.001, far: 100 }}
       gl={{ antialias: true }}
-      fallback={<p className="p-8">WebGL is unavailable. You can still inspect components and the BOM below.</p>}
+      fallback={<RendererUnavailable onReady={onRendererReady} />}
+      onCreated={() => onRendererReady(true)}
       onPointerMissed={event => { if (event.type === "click") onSelect([]); }}
     >
       <color attach="background" args={["#101b2b"]} />
@@ -70,12 +95,8 @@ export default function FurnitureCanvas({ model, drawers, positions, maximumMm, 
       <directionalLight position={[-2, 3, -4]} intensity={2.5} />
       <directionalLight position={[2, 1, 3]} intensity={1.5} />
       <CameraControls bounds={bounds} resetKey={resetKey} />
-      {model.panels.filter(panel => !movingIds.has(panel.component.id) && visible[panel.role]).map(panel => (
-        <PanelObject key={panel.component.id} panel={panel} selected={selectedIds.includes(panel.component.id)} onSelect={onSelect} />
-      ))}
-      {drawers.map(drawer => (
-        <AnimatedDrawer key={drawer.id} drawer={drawer} opening={positions[drawer.id] ?? 0} maximumMm={maximumMm} visible={visible} highlightedIds={selectedIds} onSelect={onSelect} />
-      ))}
+      <RendererStatus onReady={onRendererReady} />
+      <SceneTransforms model={model} drawers={drawers} positions={positions} maximumMm={maximumMm} mode={explosionMode} amount={explosionAmount} plan={plan} visible={visible} selectedIds={selectedIds} onSelect={onSelect} onBusy={onExplosionBusy} />
     </Canvas>
   );
 }
