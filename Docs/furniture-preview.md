@@ -75,6 +75,10 @@ WebGL is required for 3D. A Canvas fallback and a local error boundary leave par
 
 Movement is demonstration-only. Swept-clearance analysis, photorealistic materials, stock grain/edge banding, physical hardware models, manufacturing approval, machining, CNC, STEP export and shop drawings are outside this phase. Layer toggles are presentation only, not a different engineered assembly.
 
+The later Phase 4B **2D drawings** panel uses this same closed engine result. It includes every panel blank, a full component schedule and a nominal cutting list with automatic BOM reconciliation; all generated sheets are included in vector PDF export. See [the drawing package documentation](drawing-foundation.md). Viewer movement, explosion and visibility do not affect those sheets. This remains preliminary documentation with no manufacturing release or verified BS 8888 compliance.
+
+Phase 4C.1 adds [Drawing Settings and reusable profiles](drawing-profiles.md): choose presentation, format/projections, visible views/schedules, title-block metadata and numbering, then explicitly save/load preferences in this browser. The visible sheet set controls vector PDF output; full internal component/BOM reconciliation remains active. Unverified hardware allowances are labelled separately from approved purchasing quantities.
+
 ## Architecture and checks
 
 - `src/app/furniture/page.tsx`: separate route and metadata.

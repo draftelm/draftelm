@@ -86,7 +86,7 @@ export default function FurniturePreview() {
   return (
     <div className="mx-auto max-w-[1600px] px-4 pb-12 sm:px-8">
       <header className="mb-6 mt-8 flex flex-wrap items-start justify-between gap-4">
-        <div><p className="text-sm text-blue-200">Furniture engineering · Phase 4A</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Chest of drawers</h1><p className="mt-2 text-sm text-slate-400">Parametric assembly · millimetres · single drawer column</p></div>
+        <div><p className="text-sm text-blue-200">Furniture engineering · Phase 4C.1</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Chest of drawers</h1><p className="mt-2 text-sm text-slate-400">Parametric assembly · millimetres · single drawer column</p></div>
         <div className="max-w-md rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100"><strong>Preliminary design — not manufacturing-ready</strong><p className="mt-1 text-amber-100/75">Materials, hardware, fixings, loads and stability remain unverified.</p></div>
       </header>
       <div className="grid items-start gap-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">

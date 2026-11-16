@@ -16,9 +16,10 @@ function reference(options: Partial<DrawingOptions> = {}) {
   return { result, document: generated.document };
 }
 
-test("A3 document contains general assembly and complete carcass component sheet", () => {
+test("A3 package retains general assembly and carcass sheets alongside all panel details and schedules", () => {
   const { result, document } = reference();
-  assert.equal(document.sheets.length, 2);
+  assert.equal(document.sheets.length, 6);
+  assert.deepEqual(document.sheets.map(s => s.id), ["GA-001", "CP-001", "CP-002", "CP-003", "CL-001", "HW-001"]);
   const [ga, cp] = document.sheets;
   assert.deepEqual([ga.widthMm, ga.heightMm], [420, 297]);
   assert.equal(ga.viewports.length, 4); assert.equal(cp.viewports.length, 3);
@@ -29,7 +30,7 @@ test("A3 document contains general assembly and complete carcass component sheet
   assert.equal(document.standardsCandidate, "BS 8888:2025");
   for (const s of document.sheets) {
     assert.equal(s.metadata.units, "mm"); assert.equal(s.metadata.revision, "A");
-    assert.equal(s.metadata.total, 2); assert(s.metadata.scale); assert(s.metadata.status.includes("NOT FOR MANUFACTURE"));
+    assert.equal(s.metadata.total, document.sheets.length); assert(s.metadata.scale); assert(s.metadata.status.includes("NOT FOR MANUFACTURE"));
   }
 });
 
@@ -147,13 +148,16 @@ test("generation is immutable and missing BOM links/invalid inputs withhold draw
   assert.equal(generateDrawingDocument(tampered).document, null);
 });
 
-test("vector PDF preserves two A3 MediaBoxes and exact plotted line coordinates without screenshots", async () => {
+test("vector PDF preserves every A3 sheet and exact plotted line coordinates without screenshots", async () => {
   const { document } = reference(); const bytes = await exportDrawingPDF(document); const pdf = await PDFDocument.load(bytes);
-  assert.equal(pdf.getPageCount(), 2);
+  assert.equal(pdf.getPageCount(), document.sheets.length);
   for (const page of pdf.getPages()) { near(page.getWidth(), 420 * 72 / 25.4); near(page.getHeight(), 297 * 72 / 25.4); }
   const streams = pdf.context.enumerateIndirectObjects().filter(([, value]) => value instanceof PDFRawStream).map(([, value]) => value as PDFRawStream);
   const content = streams.map(stream => new TextDecoder().decode(decodePDFRawStream(stream).decode())).join("\n");
   assert(!streams.some(s => s.dict.get(pdf.context.obj("Subtype"))?.toString() === "/Image"));
+  for (const id of ["chest/drawer-1/front", "chest/drawer-4/front", "chest/drawer-4/rear"]) {
+    assert(content.includes(Buffer.from(id).toString("hex").toUpperCase()), `PDF schedule must print ${id}`);
+  }
   const view = document.sheets[0].viewports[0], dimension = view.dimensions.find(d => d.id === "overall-width")!;
   const line = plotDimension(view, dimension).filter(e => e.kind === "line")[2];
   const from = { x: line.from.x * MM_TO_PT, y: (297 - line.from.y) * MM_TO_PT }, to = { x: line.to.x * MM_TO_PT, y: (297 - line.to.y) * MM_TO_PT };

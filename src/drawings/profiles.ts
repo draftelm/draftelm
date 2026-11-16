@@ -1,0 +1,70 @@
+import type { DrawingOptions, DrawingProfile } from "./types";
+
+const workshop: DrawingProfile = {
+  schemaVersion: 1, id: "furniture-workshop", name: "Furniture Workshop", template: "workshop",
+  sheet: { format: "A3", projectionConvention: "third-angle" },
+  contents: { assemblyViews: ["front", "top", "right", "isometric"], componentDrawings: true,
+    cuttingList: { include: true, placement: "after-components" }, hardwareSchedule: true },
+  titleBlock: { projectName: "DRAFTELM", additionalFields: [] },
+  numbering: { prefix: "DRF-CD", revision: "A", scheme: "by-sheet-kind", startAt: 1 },
+  hardwarePurchasing: "approved-only", extensions: {},
+};
+const engineering: DrawingProfile = { ...structuredClone(workshop), id: "engineering", name: "Engineering — compliance not yet verified", template: "engineering" };
+
+export const DRAWING_PROFILE_CHOICES = [
+  { id: workshop.id, name: workshop.name }, { id: engineering.id, name: engineering.name },
+] as const;
+export function getDrawingProfile(id = workshop.id): DrawingProfile {
+  const profile = [workshop, engineering].find(p => p.id === id);
+  if (!profile) throw new Error(`Unknown drawing profile: ${id}.`);
+  return structuredClone(profile);
+}
+export function profileFromOptions(options: DrawingOptions): DrawingProfile {
+  const profile = getDrawingProfile(options.template === "engineering" ? engineering.id : workshop.id);
+  profile.template = options.template;
+  profile.sheet = { format: options.format, projectionConvention: options.projectionConvention };
+  profile.titleBlock.projectName = options.projectName;
+  profile.numbering.prefix = options.drawingPrefix; profile.numbering.revision = options.revision;
+  return profile;
+}
+
+const record = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+const keys = (v: unknown, allowed: string[]) => record(v) && Object.keys(v).every(k => allowed.includes(k));
+const text = (v: unknown, max = 60, blank = false): v is string => typeof v === "string" && v.length <= max && (blank || !!v.trim()) && !/[\x00-\x1f\x7f]/.test(v);
+const token = (v: unknown) => typeof v === "string" && /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,59}$/.test(v);
+const choice = (v: unknown, values: string[]) => typeof v === "string" && values.includes(v);
+
+/** Local data is untrusted: reject unknown versions/keys and approval/geometry overrides. */
+export function parseDrawingProfile(value: unknown): { profile: DrawingProfile | null; issues: string[] } {
+  const issues: string[] = [];
+  if (!keys(value, ["schemaVersion", "id", "name", "template", "sheet", "contents", "titleBlock", "numbering", "hardwarePurchasing", "extensions"])) {
+    return { profile: null, issues: ["Drawing profile must contain only supported configuration fields."] };
+  }
+  const v = value as Record<string, unknown>;
+  if (v.schemaVersion !== 1) issues.push("Unsupported drawing profile version.");
+  if (!token(v.id) || !text(v.name)) issues.push("Profile ID/name is invalid.");
+  if (!choice(v.template, ["workshop", "engineering"])) issues.push("Unsupported drawing template.");
+  const s = v.sheet;
+  if (!keys(s, ["format", "projectionConvention"]) || !record(s) || !choice(s.format, ["A4", "A3", "A2", "A1"]) || !choice(s.projectionConvention, ["first-angle", "third-angle"])) issues.push("Unsupported sheet size or projection.");
+  const c = v.contents;
+  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule"]) || !record(c)) issues.push("Invalid drawing contents.");
+  else {
+    if (!Array.isArray(c.assemblyViews) || c.assemblyViews.length > 4 || new Set(c.assemblyViews).size !== c.assemblyViews.length || Array.from(c.assemblyViews).some(p => !choice(p, ["front", "top", "right", "isometric"]))) issues.push("Assembly views must be distinct supported projections.");
+    if (typeof c.componentDrawings !== "boolean" || typeof c.hardwareSchedule !== "boolean") issues.push("Sheet visibility must be boolean.");
+    const cut = c.cuttingList;
+    if (!keys(cut, ["include", "placement"]) || !record(cut) || typeof cut.include !== "boolean" || !choice(cut.placement, ["before-components", "after-components"])) issues.push("Invalid cutting-list settings.");
+    else if (Array.isArray(c.assemblyViews) && !c.assemblyViews.length && !c.componentDrawings && !cut.include && !c.hardwareSchedule) issues.push("Select at least one drawing view or schedule; empty PDFs are not generated.");
+  }
+  const t = v.titleBlock;
+  if (!keys(t, ["projectName", "companyName", "additionalFields"]) || !record(t) || !text(t.projectName) || (t.companyName !== undefined && !text(t.companyName, 60, true)) ||
+    !Array.isArray(t.additionalFields) || t.additionalFields.length > 3 || Array.from(t.additionalFields).some(f => !keys(f, ["label", "value"]) || !record(f) || !text(f.label, 20) || !text(f.value))) issues.push("Title block requires a project, optional company and at most three labelled metadata fields.");
+  const n = v.numbering;
+  if (!keys(n, ["prefix", "revision", "scheme", "startAt"]) || !record(n) || !text(n.prefix) || !text(n.revision) || !choice(n.scheme, ["by-sheet-kind", "sequential"]) || !Number.isSafeInteger(n.startAt) || Number(n.startAt) < 1 || Number(n.startAt) > 999999) issues.push("Invalid drawing numbering or revision settings.");
+  if (v.hardwarePurchasing !== "approved-only") issues.push("Unverified hardware must be excluded from approved purchasing quantities.");
+  const e = v.extensions;
+  if (!keys(e, ["branding", "materials", "machining"]) || !record(e)) issues.push("Unsupported profile extensions.");
+  else for (const [name, allowed] of [["branding", ["logoAssetId", "borderTemplateId", "importedTemplateId"]], ["materials", ["annotationProfileId"]], ["machining", ["annotationProfileId"]]] as const) {
+    if (e[name] !== undefined && (!keys(e[name], [...allowed]) || !record(e[name]) || Object.values(e[name]).some(id => !token(id)))) issues.push(`Invalid reserved ${name} extension IDs; executable content and URLs are not supported.`);
+  }
+  return { profile: issues.length ? null : structuredClone(value as DrawingProfile), issues };
+}

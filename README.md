@@ -12,7 +12,9 @@ Phase 3A adds independent drawer opening/closing and percentage sliders, with co
 
 Phase 3B adds Assembly and Individual Panels exploded views, with staged visual separation and independent explosion reset. Saved drawer openings return after reassembly; the engine geometry and BOM remain unchanged.
 
-The [Phase 4A drawing foundation](Docs/drawing-foundation.md) adds preliminary A3 general-assembly and carcass-component sheets, configurable projection placement, workshop/formal templates, and vector PDF export. The BS 8888 / ISO-style template targets BS 8888:2025 but its compliance is not yet verified against licensed standards.
+The [Phase 4A / 4B drawing package](Docs/drawing-foundation.md) includes preliminary A3 general-assembly views, grouped details for all 29 panels, a complete component schedule and nominal cutting list, automatic BOM reconciliation, configurable projection placement, workshop/formal templates, and vector PDF export. The reference package has six sheets. The BS 8888 / ISO-style template targets BS 8888:2025 but its compliance is not yet verified against licensed standards. Manufacturing readiness remains false; DXF/DWG is outside this phase.
+
+[Phase 4C.1 drawing profiles](Docs/drawing-profiles.md) adds reusable Workshop/Engineering settings, live sheet inclusion and cutting-list placement, all supported sheet sizes, company/title-block metadata, configurable numbering and explicit local Save/Load/Reset. Hidden information stays internally reconciled. The reference 160 screws, eight brackets and eight individual runners remain unverified allowances, excluded from approved purchasing quantities.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 

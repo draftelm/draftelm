@@ -6,11 +6,12 @@ export const MM_TO_PT = 72 / 25.4;
 export const pdfText = (s: string) => s.replace(/[^\x20-\x7e\u00a0-\u00ff\u2013\u2014]/g, "?");
 
 export async function exportDrawingPDF(document: DrawingDocument): Promise<Uint8Array> {
-  if (!document.sheets.length || document.manufacturingReady || document.complianceVerified) throw new Error("Only preliminary, unverified drawing documents can be exported in Phase 4A.");
+  if (!document.sheets.length || document.manufacturingReady || document.complianceVerified || !document.reconciliation.valid) throw new Error("Only reconciled preliminary, unverified drawing documents can be exported.");
   const pdf = await PDFDocument.create();
   pdf.setTitle(`${document.sheets[0].metadata.projectName} - Preliminary furniture drawings`);
   pdf.setSubject("Nominal geometry; BS 8888 / ISO-style compliance not verified; not for manufacture");
   pdf.setCreator("DRAFTELM drawing foundation");
+  if (document.profile.titleBlock.companyName) pdf.setAuthor(pdfText(document.profile.titleBlock.companyName));
   const regular = await pdf.embedFont(StandardFonts.Helvetica), bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   for (const sheet of document.sheets) {
     const page = pdf.addPage([sheet.widthMm * MM_TO_PT, sheet.heightMm * MM_TO_PT]);
