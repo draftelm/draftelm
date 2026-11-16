@@ -23,6 +23,9 @@ export async function exportDrawingPDF(document: DrawingDocument): Promise<Uint8
         const path = entity.points.map((p, i) => `${i ? "L" : "M"} ${p.x * MM_TO_PT} ${p.y * MM_TO_PT}`).join(" ") + " Z";
         // drawSvgPath uses SVG's downward Y convention about the supplied PDF origin.
         page.drawSvgPath(path, { x: 0, y: sheet.heightMm * MM_TO_PT, color: ink });
+      } else if (entity.kind === "circle") {
+        page.drawEllipse({ x: entity.center.x * MM_TO_PT, y: y(entity.center.y), xScale: entity.radius * MM_TO_PT, yScale: entity.radius * MM_TO_PT,
+          borderWidth: entity.width * MM_TO_PT, borderColor: ink, color: entity.filled ? ink : undefined });
       } else {
         const font = entity.bold ? bold : regular, value = pdfText(entity.text), size = entity.size * MM_TO_PT;
         const advance = entity.align === "middle" ? font.widthOfTextAtSize(value, size) / 2 : 0;

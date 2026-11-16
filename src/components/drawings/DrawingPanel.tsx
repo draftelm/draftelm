@@ -49,7 +49,7 @@ export default function DrawingPanel({ result }: { result: FurnitureResult }) {
   }
   return (
     <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5" aria-label="Engineering drawings">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">2D drawings · Phase 4C.1</h2><button type="button" disabled={!document || exporting} className="rounded-lg border border-white/20 px-3 py-2 text-sm disabled:opacity-40" onClick={exportPDF}>{exporting ? "Exporting…" : "Export vector PDF"}</button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">2D drawings · Phase 4C.2</h2><button type="button" disabled={!document || exporting} className="rounded-lg border border-white/20 px-3 py-2 text-sm disabled:opacity-40" onClick={exportPDF}>{exporting ? "Exporting…" : "Export vector PDF"}</button></div>
       <p className="mt-2 text-sm text-amber-200">Preliminary nominal drawings — not for manufacture. BS 8888:2025 requirements have not been individually verified against licensed standards.</p>
       <DrawingSettings profile={profile} baseProfileId={baseProfileId} message={preferencesMessage}
         onChange={p => { setProfile(p); setPreferencesMessage(""); }} onSelect={selectProfile}
@@ -59,6 +59,10 @@ export default function DrawingPanel({ result }: { result: FurnitureResult }) {
         <p role="status" className="mt-3 text-sm text-emerald-200">Internal BOM reconciled · {document.reconciliation.panelQuantity} panels · {document.cuttingList.length} distinct blanks · all {document.reconciliation.componentCount} component IDs retained. Nominal cutting sizes carry no manufacturing allowances.</p>
         {document.output.omittedSections.length > 0 && <p className="mt-2 text-xs text-amber-200">Configured output omits: {document.output.omittedSections.join(", ")}. Hidden information remains internally traceable and unverified.</p>}
         <p className="mt-2 text-xs text-amber-200">Hardware quantities are unverified demonstration allowances, excluded from approved purchasing totals. No approved hardware purchasing items.</p>
+        {document.drawingAnnotations.diagnostics.length > 0 && <details className="mt-3 text-xs text-amber-200"><summary className="cursor-pointer">Assembly annotation placement: {document.drawingAnnotations.diagnostics.filter(d => d.itemKey).length} balloon requests unplaced</summary><ul className="mt-2 space-y-1">{document.drawingAnnotations.diagnostics.map((diagnostic, i) => {
+          const item = document.drawingAnnotations.items.find(item => item.key === diagnostic.itemKey);
+          return <li key={i}>{item ? `Item ${item.label} (${item.description}): ` : ""}{diagnostic.message}{diagnostic.componentIds.length > 0 && <span className="block break-words text-slate-400">{diagnostic.componentIds.join(", ")}</span>}</li>;
+        })}</ul></details>}
         <label className="mt-4 block text-sm">Drawing sheet<select aria-label="Drawing sheet" className="ml-3 max-w-full rounded-lg border border-white/20 bg-slate-900 p-2" value={sheet.id} onChange={e => setSelectedSheet(e.target.value)}>{document.sheets.map(s => <option key={s.id} value={s.id}>{s.metadata.number}/{s.metadata.total} · {s.id} · {s.metadata.subject}</option>)}</select></label>
         <div className="mt-4 overflow-auto rounded-lg bg-slate-200 p-2 sm:p-4"><div className="min-w-[720px]"><SheetPreview document={document} sheet={sheet} /></div></div>
         <p className="mt-2 text-xs text-slate-400">Scroll the sheet horizontally on small screens. Orthographic views show visible panel outlines. The isometric is a parallel wireframe illustration, not a perspective rendering or hidden-line drawing. PDF: print at Actual size / 100%; browser scaling changes physical print scale.</p>

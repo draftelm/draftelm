@@ -34,7 +34,7 @@ export function viewportText(view: DrawingViewport) {
 
 export function viewportPadding(view: DrawingViewport) {
   const { heading, notes } = viewportText(view);
-  return { left: 25, right: 8, top: 7 + (heading.length - 1) * 3.3,
+  return { left: Math.max(25, view.balloonMargin ?? 0), right: Math.max(8, view.balloonMargin ?? 0), top: 7 + (heading.length - 1) * 3.3,
     bottom: notes.length ? 15 + notes.length * 2.8 : 13 };
 }
 
@@ -46,7 +46,7 @@ export function paginateSchedule(schedule: DrawingScheduleRow[], page: { width: 
   const hardware = schedule.length > 0 && schedule.every(row => row.kind === "hardware");
   const fixedWidth = hardware ? 104 : 94;
   const columns = [
-    { label: "BOM / kind", width: 27 }, { label: "Description", width: (width - fixedWidth) * 0.28 },
+    { label: hardware ? "BOM / kind" : "Item / BOM", width: 27 }, { label: "Description", width: (width - fixedWidth) * 0.28 },
     { label: "Unique part IDs", width: (width - fixedWidth) * 0.44 }, { label: hardware ? "Allowance qty" : "Qty", width: hardware ? 22 : 12 },
     { label: "Cut L x W x T (mm)", width: 55 }, { label: "Material / item ID", width: (width - fixedWidth) * 0.28 },
   ];
@@ -61,7 +61,7 @@ export function paginateSchedule(schedule: DrawingScheduleRow[], page: { width: 
   };
   for (const row of schedule) {
     const cut = row.cutSize;
-    const values = [`${row.bomId}\n${row.kind}`, row.description, row.componentIds.join("\n"), String(row.quantity),
+    const values = [`${row.drawingItemLabel ? `Item ${row.drawingItemLabel}\n` : ""}${row.bomId}\n${row.kind}`, row.description, row.componentIds.join("\n"), String(row.quantity),
       cut ? `${numberText(cut.length)} x ${numberText(cut.width)} x ${numberText(cut.thickness)}` : "Not specified", row.itemId];
     const cells = values.map((value, i) => wrapDrawingText(value, columns[i].width - 4, fontSize));
     const count = Math.max(...cells.map(cell => cell.length));

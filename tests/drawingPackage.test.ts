@@ -160,6 +160,7 @@ test("multiple BOM faults report all implicated IDs instead of only the first er
 
 /** Conservative paper-space bounds, including rotated dimension lettering. */
 function extent(entity: PlotEntity): Rect {
+  if (entity.kind === "circle") return { x: entity.center.x - entity.radius, y: entity.center.y - entity.radius, width: entity.radius * 2, height: entity.radius * 2 };
   if (entity.kind !== "text") {
     const points = entity.kind === "line" ? [entity.from, entity.to] : entity.points;
     const x = Math.min(...points.map(p => p.x)), y = Math.min(...points.map(p => p.y));

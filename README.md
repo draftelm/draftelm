@@ -16,6 +16,8 @@ The [Phase 4A / 4B drawing package](Docs/drawing-foundation.md) includes prelimi
 
 [Phase 4C.1 drawing profiles](Docs/drawing-profiles.md) adds reusable Workshop/Engineering settings, live sheet inclusion and cutting-list placement, all supported sheet sizes, company/title-block metadata, configurable numbering and explicit local Save/Load/Reset. Hidden information stays internally reconciled. The reference 160 screws, eight brackets and eight individual runners remain unverified allowances, excluded from approved purchasing quantities.
 
+[Phase 4C.2 assembly annotations](Docs/drawing-annotations.md) adds deterministic panel item numbers, visible-edge balloons and a linked compact GA parts list, with AP-sheet overflow and profile-v2 migration. The default A3 chest has seven items covering all 29 panels, three reliable representative balloons and four explicitly concealed/unplaced groups. The original geometry/BOM and preliminary status remain unchanged.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

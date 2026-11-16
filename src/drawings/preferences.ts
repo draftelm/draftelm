@@ -12,7 +12,7 @@ export function saveDrawingPreferences(storage: PreferenceStorage, profile: Draw
   if (!["furniture-workshop", "engineering"].includes(baseProfileId)) return { profile: null, message: "Unknown base drawing profile." };
   try {
     const custom = { ...parsed.profile, id: `custom-${baseProfileId}`, name: `Custom ${baseProfileId === "engineering" ? "Engineering" : "Furniture Workshop"}` };
-    storage.setItem(DRAWING_PREFERENCES_KEY, JSON.stringify({ schemaVersion: 1, baseProfileId, profile: custom }));
+    storage.setItem(DRAWING_PREFERENCES_KEY, JSON.stringify({ schemaVersion: 2, baseProfileId, profile: custom }));
     return { profile: custom, message: "Drawing preferences saved in this browser." };
   } catch { return { profile: null, message: "Browser storage is unavailable or full. Current settings remain available." }; }
 }
@@ -24,9 +24,10 @@ export function loadDrawingPreferences(storage: PreferenceStorage): PreferenceRe
     const saved: unknown = JSON.parse(raw);
     if (!saved || typeof saved !== "object" || Array.isArray(saved)) throw new Error();
     const envelope = saved as Record<string, unknown>;
-    if (envelope.schemaVersion !== 1 || typeof envelope.baseProfileId !== "string" || !["furniture-workshop", "engineering"].includes(envelope.baseProfileId) || Object.keys(envelope).some(k => !["schemaVersion", "baseProfileId", "profile"].includes(k))) throw new Error();
+    if (![1, 2].includes(Number(envelope.schemaVersion)) || typeof envelope.schemaVersion !== "number" || typeof envelope.baseProfileId !== "string" || !["furniture-workshop", "engineering"].includes(envelope.baseProfileId) || Object.keys(envelope).some(k => !["schemaVersion", "baseProfileId", "profile"].includes(k))) throw new Error();
     const parsed = parseDrawingProfile(envelope.profile);
     if (!parsed.profile) return { profile: null, message: `Saved preferences were not loaded. ${parsed.issues.join(" ")}` };
-    return { profile: parsed.profile, baseProfileId: envelope.baseProfileId, message: "Saved drawing preferences loaded. Preview updated." };
+    const migrated = (envelope.profile as { schemaVersion?: unknown })?.schemaVersion === 1;
+    return { profile: parsed.profile, baseProfileId: envelope.baseProfileId, message: migrated ? "Saved v1 preferences migrated to v2 with new annotations off. Reset enables current profile defaults." : "Saved drawing preferences loaded. Preview updated." };
   } catch { return { profile: null, message: "Saved drawing preferences could not be read. Current settings are unchanged." }; }
 }

@@ -1,13 +1,14 @@
 import type { DrawingOptions, DrawingProfile } from "./types";
 
 const workshop: DrawingProfile = {
-  schemaVersion: 1, id: "furniture-workshop", name: "Furniture Workshop", template: "workshop",
+  schemaVersion: 2, id: "furniture-workshop", name: "Furniture Workshop", template: "workshop",
   sheet: { format: "A3", projectionConvention: "third-angle" },
   contents: { assemblyViews: ["front", "top", "right", "isometric"], componentDrawings: true,
     cuttingList: { include: true, placement: "after-components" }, hardwareSchedule: true },
   titleBlock: { projectName: "DRAFTELM", additionalFields: [] },
   numbering: { prefix: "DRF-CD", revision: "A", scheme: "by-sheet-kind", startAt: 1 },
   hardwarePurchasing: "approved-only", extensions: {},
+  annotations: { balloons: true, assemblyPartsList: true, balloonDisplay: "one-per-item", itemNumberStyle: "numeric" },
 };
 const engineering: DrawingProfile = { ...structuredClone(workshop), id: "engineering", name: "Engineering — compliance not yet verified", template: "engineering" };
 
@@ -25,6 +26,8 @@ export function profileFromOptions(options: DrawingOptions): DrawingProfile {
   profile.sheet = { format: options.format, projectionConvention: options.projectionConvention };
   profile.titleBlock.projectName = options.projectName;
   profile.numbering.prefix = options.drawingPrefix; profile.numbering.revision = options.revision;
+  // The legacy options API retains its established sheet layout.
+  profile.annotations.balloons = false; profile.annotations.assemblyPartsList = false;
   return profile;
 }
 
@@ -37,11 +40,12 @@ const choice = (v: unknown, values: string[]) => typeof v === "string" && values
 /** Local data is untrusted: reject unknown versions/keys and approval/geometry overrides. */
 export function parseDrawingProfile(value: unknown): { profile: DrawingProfile | null; issues: string[] } {
   const issues: string[] = [];
-  if (!keys(value, ["schemaVersion", "id", "name", "template", "sheet", "contents", "titleBlock", "numbering", "hardwarePurchasing", "extensions"])) {
+  const legacy = record(value) && value.schemaVersion === 1;
+  if (!keys(value, ["schemaVersion", "id", "name", "template", "sheet", "contents", "titleBlock", "numbering", "hardwarePurchasing", "extensions", ...(legacy ? [] : ["annotations"])])) {
     return { profile: null, issues: ["Drawing profile must contain only supported configuration fields."] };
   }
   const v = value as Record<string, unknown>;
-  if (v.schemaVersion !== 1) issues.push("Unsupported drawing profile version.");
+  if (v.schemaVersion !== 1 && v.schemaVersion !== 2) issues.push("Unsupported drawing profile version.");
   if (!token(v.id) || !text(v.name)) issues.push("Profile ID/name is invalid.");
   if (!choice(v.template, ["workshop", "engineering"])) issues.push("Unsupported drawing template.");
   const s = v.sheet;
@@ -61,10 +65,15 @@ export function parseDrawingProfile(value: unknown): { profile: DrawingProfile |
   const n = v.numbering;
   if (!keys(n, ["prefix", "revision", "scheme", "startAt"]) || !record(n) || !text(n.prefix) || !text(n.revision) || !choice(n.scheme, ["by-sheet-kind", "sequential"]) || !Number.isSafeInteger(n.startAt) || Number(n.startAt) < 1 || Number(n.startAt) > 999999) issues.push("Invalid drawing numbering or revision settings.");
   if (v.hardwarePurchasing !== "approved-only") issues.push("Unverified hardware must be excluded from approved purchasing quantities.");
+  const a = v.annotations;
+  if (!legacy && (!keys(a, ["balloons", "assemblyPartsList", "balloonDisplay", "itemNumberStyle"]) || !record(a) || typeof a.balloons !== "boolean" || typeof a.assemblyPartsList !== "boolean" ||
+    !choice(a.balloonDisplay, ["one-per-item", "visible-occurrences"]) || !choice(a.itemNumberStyle, ["numeric", "prefixed"]))) issues.push("Invalid assembly annotation settings.");
   const e = v.extensions;
   if (!keys(e, ["branding", "materials", "machining"]) || !record(e)) issues.push("Unsupported profile extensions.");
   else for (const [name, allowed] of [["branding", ["logoAssetId", "borderTemplateId", "importedTemplateId"]], ["materials", ["annotationProfileId"]], ["machining", ["annotationProfileId"]]] as const) {
     if (e[name] !== undefined && (!keys(e[name], [...allowed]) || !record(e[name]) || Object.values(e[name]).some(id => !token(id)))) issues.push(`Invalid reserved ${name} extension IDs; executable content and URLs are not supported.`);
   }
-  return { profile: issues.length ? null : structuredClone(value as DrawingProfile), issues };
+  if (issues.length) return { profile: null, issues };
+  const migrated = legacy ? { ...v, schemaVersion: 2, annotations: { balloons: false, assemblyPartsList: false, balloonDisplay: "one-per-item", itemNumberStyle: "numeric" } } : value;
+  return { profile: structuredClone(migrated as DrawingProfile), issues };
 }

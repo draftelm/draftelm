@@ -5,4 +5,5 @@ export { plotSheet, plotDimension, modelToSheet } from "./plot";
 export { reconcileDrawingParts } from "./reconcile";
 export { getDrawingProfile, parseDrawingProfile, DRAWING_PROFILE_CHOICES } from "./profiles";
 export { loadDrawingPreferences, saveDrawingPreferences, DRAWING_PREFERENCES_KEY } from "./preferences";
+export { createDrawingAnnotations, validateDrawingAnnotations } from "./annotations";
 // PDF is imported separately so browser preview does not eagerly load the exporter.

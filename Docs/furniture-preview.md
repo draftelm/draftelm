@@ -79,6 +79,8 @@ The later Phase 4B **2D drawings** panel uses this same closed engine result. It
 
 Phase 4C.1 adds [Drawing Settings and reusable profiles](drawing-profiles.md): choose presentation, format/projections, visible views/schedules, title-block metadata and numbering, then explicitly save/load preferences in this browser. The visible sheet set controls vector PDF output; full internal component/BOM reconciliation remains active. Unverified hardware allowances are labelled separately from approved purchasing quantities.
 
+Phase 4C.2 adds [component balloons and the assembly parts list](drawing-annotations.md) to those settings. Annotations use the same closed engine geometry and remain independent of viewer opening/explosion. The reference list covers all 29 panels in seven items; only three groups have reliably visible balloon anchors. The UI identifies concealed/unplaced requests and any list relocation. Saved v1 profiles migrate safely with new annotation visibility off; current profile defaults enable both features.
+
 ## Architecture and checks
 
 - `src/app/furniture/page.tsx`: separate route and metadata.

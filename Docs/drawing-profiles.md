@@ -4,7 +4,7 @@ The `/furniture` **Drawing Settings** panel configures the existing Phase 4B gen
 
 ## Profile contract and API
 
-`DrawingProfile` in `src/drawings/types.ts` has its own `schemaVersion: 1`, independent of the furniture and drawing-document schema versions. `profiles.ts` supplies fresh defaults through `getDrawingProfile()` and `getDrawingProfile("engineering")`. Callers can assign their own profile ID/name and pass a typed profile to the existing `generateDrawingDocument`. The previous `DrawingOptions` argument and no-argument default remain supported through an adapter; the generator is retained.
+`DrawingProfile` in `src/drawings/types.ts` now has its own `schemaVersion: 2`, independent of the furniture and drawing-document schema versions. Phase 4C.2 adds [assembly annotation controls and v1 migration](drawing-annotations.md). `profiles.ts` supplies fresh defaults through `getDrawingProfile()` and `getDrawingProfile("engineering")`. Callers can assign their own profile ID/name and pass a typed profile to the existing `generateDrawingDocument`. The previous `DrawingOptions` argument remains supported through an adapter with new annotations off; the no-argument API uses current Workshop defaults. The generator is retained.
 
 ```ts
 import { generateDrawingDocument, getDrawingProfile } from "../src/drawings";
@@ -35,6 +35,7 @@ const drawings = generateDrawingDocument(result, profile);
 | `titleBlock` | Required project name, optional company name and up to three labelled text fields. |
 | `numbering` | Prefix, explicit revision text, starting drawing number (1–999999), and `by-sheet-kind` or `sequential` numbering. |
 | `hardwarePurchasing` | Fixed `approved-only` policy. Profiles cannot approve allowances. |
+| `annotations` | Show/hide balloons and compact assembly list; representative/per-occurrence balloons; numeric/prefixed item labels. |
 | `extensions` | Reserved branding, material-annotation and machining-annotation reference IDs; currently inert. |
 
 `parseDrawingProfile(unknown)` validates profiles before generation and after reading local data. Unknown fields/versions, unsupported choices, duplicate projections, non-boolean visibility, invalid numbering, control characters, oversized metadata, geometry/approval overrides and executable extension content are rejected. At least one view or schedule must remain enabled. Invalid settings withhold the preview/export and display a correction; valid defaults are available through Reset.
@@ -49,7 +50,7 @@ Choose a base profile, adjust its template/size/projection and optional sheets, 
 
 **Save preferences locally** stores one custom preference set in `localStorage` under `draftelm.drawing-preferences.v1`. **Load saved preferences** explicitly restores it and its base profile; there is no automatic load during server rendering or hydration. Reloading the page starts with Workshop until Load is selected. Save replaces the previous local preference set. **Reset to profile defaults** restores a fresh copy of the selected base profile without deleting the saved set. Selecting another base profile applies that profile's defaults immediately. Local changes remain usable if storage is denied, full, missing, malformed or from an unsupported version; failed loads leave active settings unchanged.
 
-The saved envelope is `{ schemaVersion: 1, baseProfileId, profile }`. It stores settings and metadata only: no furniture specification, geometry, component IDs, BOM, approval evidence, account, database or network request. Save assigns a custom identity derived from the selected built-in base. The local UI stores one preference set; a multi-profile company library, JSON import/export, profile migrations and cross-device synchronisation are future work.
+The saved envelope is now `{ schemaVersion: 2, baseProfileId, profile }`, under the same existing storage key. Validated v1 envelopes/profiles remain loadable; v1 profiles migrate with the new annotation visibility off, and Reset enables current defaults. Loads do not rewrite storage. It stores settings and metadata only: no furniture specification, geometry, component IDs, BOM, approval evidence, account, database or network request. Save assigns a custom identity derived from the selected built-in base. The local UI stores one preference set; a multi-profile company library, JSON import/export and cross-device synchronisation are future work.
 
 ## Reconciliation, omissions and hardware purchasing
 

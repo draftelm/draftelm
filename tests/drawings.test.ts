@@ -94,6 +94,7 @@ test("carcass sheet uses BOM identities, exact panel blanks and quantities", () 
 });
 
 function points(entity: PlotEntity) {
+  if (entity.kind === "circle") return [{ x: entity.center.x - entity.radius, y: entity.center.y - entity.radius }, { x: entity.center.x + entity.radius, y: entity.center.y + entity.radius }];
   return entity.kind === "line" ? [entity.from, entity.to] : entity.kind === "polygon" ? entity.points : [entity.at];
 }
 for (const format of ["A4", "A3", "A2", "A1"] as const) for (const convention of ["first-angle", "third-angle"] as const) test(`${format} ${convention}: sheet and viewport fitting keep all plotted primitives within boundaries`, () => {

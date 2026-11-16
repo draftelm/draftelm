@@ -26,9 +26,11 @@ function texts(document: DrawingDocument) {
 test("Workshop profile preserves the six-sheet Phase 4B default and legacy options API", () => {
   const { result, document } = generate();
   const legacy = generateDrawingDocument(result, DEFAULT_DRAWING_OPTIONS); assert(legacy.document);
-  assert.equal(document.profile.schemaVersion, 1); assert.equal(document.profile.id, "furniture-workshop");
+  assert.equal(document.profile.schemaVersion, 2); assert.equal(document.profile.id, "furniture-workshop");
   assert.deepEqual(document.sheets.map(s => s.id), ["GA-001", "CP-001", "CP-002", "CP-003", "CL-001", "HW-001"]);
-  assert.deepEqual(document, legacy.document);
+  const compatible = getDrawingProfile(); compatible.annotations.balloons = false; compatible.annotations.assemblyPartsList = false;
+  assert.deepEqual(generate(compatible).document, legacy.document);
+  assert.deepEqual(document.cuttingList, legacy.document.cuttingList);
   const changed = getDrawingProfile(); changed.contents.assemblyViews.pop(); changed.titleBlock.projectName = "Other";
   assert.equal(getDrawingProfile().contents.assemblyViews.length, 4);
   assert.equal(getDrawingProfile().titleBlock.projectName, "DRAFTELM");
@@ -59,7 +61,7 @@ test("all 127 nonempty visibility combinations preserve full internal reconcilia
     assert.equal(d.sheets.some(s => s.id.startsWith("CP-")), p.contents.componentDrawings);
     assert.equal(d.sheets.some(s => s.id.startsWith("CL-")), p.contents.cuttingList.include);
     assert.equal(d.sheets.some(s => s.id.startsWith("HW-")), p.contents.hardwareSchedule);
-    assert(d.sheets.every((s, i) => s.metadata.number === i + 1 && s.metadata.total === d.sheets.length && (s.viewports.length || s.table?.rows.length)));
+    assert(d.sheets.every((s, i) => s.metadata.number === i + 1 && s.metadata.total === d.sheets.length && (s.viewports.length || s.table?.rows.length || s.assemblyPartsList?.rows.length)));
     assert.equal(new Set(d.sheets.map(s => s.metadata.drawingNumber)).size, d.sheets.length);
     assert.equal(d.manufacturingReady, false); assert.equal(d.complianceVerified, false);
     assert.equal(JSON.stringify(result), before);
@@ -96,7 +98,7 @@ test("assembly scale declarations include only selected views", () => {
   const p = getDrawingProfile(); p.contents.assemblyViews = ["isometric"];
   assert.equal(generate(p).document.sheets[0].metadata.scale, "iso 1:20");
   p.contents.assemblyViews = ["front"];
-  assert.equal(generate(p).document.sheets[0].metadata.scale, "1:10 main");
+  assert.equal(generate(p).document.sheets[0].metadata.scale, "1:20 main");
 });
 
 for (const scheme of ["by-sheet-kind", "sequential"] as const) test(`${scheme} numbering remains unique and contiguous after cutting-list reordering and omissions`, () => {
@@ -154,7 +156,7 @@ test("missing, corrupted, oversized and unsupported saved preferences leave curr
 });
 
 const invalidProfiles: [string, (p: DrawingProfile) => unknown][] = [
-  ["future version", p => ({ ...p, schemaVersion: 2 })], ["unknown root fields", p => ({ ...p, manufacturingReady: true })],
+  ["future version", p => ({ ...p, schemaVersion: 3 })], ["unknown root fields", p => ({ ...p, manufacturingReady: true })],
   ["geometry overrides", p => ({ ...p, dimensions: { width: 1000 } })], ["purchasing override", p => ({ ...p, hardwarePurchasing: "all" })],
   ["duplicate views", p => ({ ...p, contents: { ...p.contents, assemblyViews: ["front", "front"] } })],
   ["unknown view", p => ({ ...p, contents: { ...p.contents, assemblyViews: ["perspective"] } })],
@@ -179,6 +181,9 @@ test("reserved branding/material/machining references round-trip safely and are 
 });
 
 function fullExtentInsideSheet(entity: PlotEntity, width: number, height: number) {
+  if (entity.kind === "circle") {
+    assert(entity.center.x - entity.radius >= 10 && entity.center.x + entity.radius <= width - 10 && entity.center.y - entity.radius >= 10 && entity.center.y + entity.radius <= height - 10); return;
+  }
   if (entity.kind === "text") {
     const length = Array.from(entity.text).length * entity.size;
     const x = entity.at.x - (entity.rotation ? entity.size : entity.align === "middle" ? length / 2 : 0);
@@ -205,6 +210,7 @@ for (const format of ["A4", "A3", "A2", "A1"] as const) test(`${format}: company
 
 for (const selection of ["cutting-only", "hardware-only", "front-only", "custom-package"] as const) test(`${selection}: configured PDF pagination matches visible vector sheets`, async () => {
   const p = getDrawingProfile("engineering"); p.sheet.format = "A4";
+  if (selection === "front-only") p.annotations.assemblyPartsList = false;
   p.titleBlock.companyName = "Example Joinery";
   if (selection !== "custom-package") p.contents = { assemblyViews: selection === "front-only" ? ["front"] : [], componentDrawings: false,
     cuttingList: { include: selection === "cutting-only", placement: "before-components" }, hardwareSchedule: selection === "hardware-only" };

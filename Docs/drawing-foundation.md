@@ -4,6 +4,8 @@ The `/furniture` page provides a **2D drawings** section with a browser sheet pr
 
 Phase 4C.1 adds [versioned drawing profiles and local Drawing Settings](drawing-profiles.md) around this same generator. The six-sheet package below remains the Workshop default. Profiles can hide/reorder optional output, select sheet size/projections, and add company/title-block metadata without weakening internal reconciliation. Hardware schedules now explicitly distinguish demonstration allowances from approved purchasing items; none are approved in this phase.
 
+Phase 4C.2 adds [stable item numbers, visibility-checked balloons and a compact assembly parts list](drawing-annotations.md). Current Workshop/Engineering profile v2 defaults use those annotations; old profile v1 settings migrate with them off. The A3 GA reserves upper-right space for the seven panel items, with main/isometric scales of 1:20 for the reference chest. The historical 1:10 main-view layout described below remains available with the compact list off and through the legacy options API. Four concealed panel groups remain explicitly unballooned; all 29 panels remain listed. Small/overflowing layouts move the list to adjacent AP sheets.
+
 ## Generated sheets
 
 The initial UI format is **A3 landscape, 420 × 297 mm**:
