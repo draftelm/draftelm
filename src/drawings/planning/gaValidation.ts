@@ -8,6 +8,7 @@ import { createAssemblyDrawingPlan, translateDrawingPanels } from "./assemblies"
 import { assemblyVisibilityDiagnostics, createAssemblyScenes } from "../assemblySheets";
 import { validateScopedAnnotations } from "../assemblyAnnotations";
 import { validateComponentDimensionDocument } from "./componentValidation";
+import { validateContextualSectionDocument } from "./sectionValidation";
 import { validateFunctionalDimensionDocument } from "./functionalValidation";
 
 /** Validate frozen source/plan/presentation consistency at the shared render boundary.
@@ -22,6 +23,7 @@ export function validateGADocument(document: DrawingDocument): string[] {
     if (issues.length) return issues;
     issues.push(...validateComponentDimensionDocument(document, source));
     issues.push(...validateFunctionalDimensionDocument(document, source));
+    issues.push(...validateContextualSectionDocument(document, source));
     issues.push(...reconcileDrawingParts(source, document.componentSchedule).issues.map(i => i.message));
     issues.push(...validateDrawingAnnotations(source, document.drawingAnnotations, document.sheets));
     const assemblyPlan = createAssemblyDrawingPlan(source, document.profile, plan.source.rootAssemblyId, plan.source.carcassAssemblyId);
@@ -34,8 +36,9 @@ export function validateGADocument(document: DrawingDocument): string[] {
       const sheet = assemblySheets.find(s => s.id === scene.id);
       if (!sheet || canonicalDrawingSnapshot(sheet.assemblyScope) !== canonicalDrawingSnapshot(scene.scope)) { issues.push(`Assembly drawing scope differs from its source: ${scene.id}.`); continue; }
       const expectedViews = scene.scope.kind === "exploded" ? 1 : 2;
-      if (sheet.viewports.length !== expectedViews || new Set(sheet.viewports.map(v => v.id)).size !== expectedViews) issues.push(`Assembly drawing views are missing or duplicated: ${scene.id}.`);
-      for (const view of sheet.viewports) {
+      const assemblyViews = sheet.viewports.filter(v => !v.sectionData);
+      if (assemblyViews.length !== expectedViews || new Set(assemblyViews.map(v => v.id)).size !== expectedViews) issues.push(`Assembly drawing views are missing or duplicated: ${scene.id}.`);
+      for (const view of assemblyViews) {
         const exploded = view.id === `${scene.id}-exploded`, assembled = view.id === `${scene.id}-assembled`;
         const offsets = exploded ? scene.explosion.offsets : {};
         const expectedPanels = translateDrawingPanels(scene.panels, offsets), geometry = isometricLines(expectedPanels);

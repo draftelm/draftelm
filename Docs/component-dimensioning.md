@@ -65,3 +65,7 @@ Hydrated production Chrome checks pass for component previews, 900/1000/1100 mm 
 Supported scope is reconciled opaque axis-aligned rectangular panel blanks and their existing BOM grouping. Hardware runner envelopes/schematic anchors are not approved component machining geometry. There are no sections, shaped/rotated parts, functional feature chains, tolerance/datums, grain/finish/edge deductions, finished-size assumptions, CAD editing, machining, DXF/DWG export or BS 8888/ISO compliance claims. Dense arbitrary drawings and future company styles need additional reviewed policies.
 
 `manufacturingReady` and `complianceVerified` remain **false**. The reference **160 screws, eight brackets and eight runners** remain unverified allowances, purchasing quantity zero and no approved purchasing items. Engineering review of manufacturing dimensions, materials, fixings, tolerances, construction and release criteria is still required. No automatic commit or push is performed.
+
+## Contextual assembly presentation
+
+Phase 5C.2B [sections and details](contextual-assembly-sections.md) add assembly relationships in surrounding solid geometry. Component nominal dimensions, grouped occurrence links and their layout/coverage are unchanged; REF assembly measurements are separate presentations of existing functional semantic IDs.

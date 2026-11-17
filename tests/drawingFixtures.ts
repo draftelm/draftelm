@@ -13,5 +13,12 @@ export function getPanelRegressionProfile(id?: string) {
 export function getPreFunctionalProfile(id?: string) {
   const profile = getDrawingProfile(id);
   delete profile.contents.functionalDimensions;
+  delete profile.contents.contextualSections;
+  return profile;
+}
+
+export function getPreSectionsProfile(id?: string) {
+  const profile = getDrawingProfile(id);
+  delete profile.contents.contextualSections;
   return profile;
 }

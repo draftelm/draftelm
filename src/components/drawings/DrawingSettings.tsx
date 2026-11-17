@@ -38,6 +38,7 @@ export default function DrawingSettings({ profile, baseProfileId, message, onCha
       </fieldset>
       <fieldset className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
         <legend className="text-xs text-slate-400">Assembly sheets</legend>
+        <label className="flex items-center gap-2"><input type="checkbox" aria-label="Contextual assembly sections" checked={!!contents.contextualSections} onChange={e => setContents({ contextualSections: e.target.checked })} />Contextual sections and detail</label>
         <label className="flex items-center gap-2"><input type="checkbox" aria-label="Functional dimension details" checked={!!contents.functionalDimensions} onChange={e => setContents({ functionalDimensions: e.target.checked })} />Functional dimension details</label>
         {([['exploded', 'Exploded assembly sheet'], ['drawers', 'Drawer subassembly sheets'], ['carcass', 'Carcass subassembly sheet']] as const).map(([key, label]) => <label key={key} className="flex items-center gap-2"><input type="checkbox" aria-label={label} checked={contents.assemblySheets[key]} onChange={e => setContents({ assemblySheets: { ...contents.assemblySheets, [key]: e.target.checked } })} />{label}</label>)}
       </fieldset>

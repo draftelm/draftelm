@@ -20,6 +20,9 @@ import { componentDimensionCoverage, fitComponentDimensions } from "./componentD
 import { createFunctionalDimensionPlan } from "./planning/functionalDimensions";
 import { functionalDetailSheets, functionalDimensionCoverage } from "./functionalDetails";
 
+import { createContextualSectionPlan } from "./planning/contextualSections";
+import { buildContextualSections } from "./contextualSections";
+
 export const FORMAL_TEMPLATE_LABEL = "BS 8888 / ISO-style — compliance not yet verified";
 export const SHEET_FORMATS: Record<SheetFormat, { width: number; height: number }> = { A4: { width: 297, height: 210 }, A3: { width: 420, height: 297 }, A2: { width: 594, height: 420 }, A1: { width: 841, height: 594 } };
 export const DEFAULT_DRAWING_OPTIONS: DrawingOptions = { template: "workshop", projectionConvention: "third-angle", format: "A3", projectName: "DRAFTELM", drawingPrefix: "DRF-CD", revision: "A" };
@@ -57,6 +60,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     if (!planned.plan) return { document: null, issues: planned.issues };
     const gaPlan = planned.plan;
     const functionalDimensionPlan = createFunctionalDimensionPlan(result, profile);
+    const contextualSectionPlan = createContextualSectionPlan(result, profile, functionalDimensionPlan);
     const assemblyPlan = createAssemblyDrawingPlan(result, profile, gaPlan.source.rootAssemblyId, gaPlan.source.carcassAssemblyId);
     const gaScope = { kind: "general" as const, representativeId: assemblyPlan.rootId, assemblyIds: [assemblyPlan.rootId] };
     const gaAnnotations = profile.annotations.gaLevel === "assemblies" ? createScopedAnnotations(result, assemblyPlan, gaScope, profile.annotations) : drawingAnnotations;
@@ -66,7 +70,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
       verificationStatus: "unverified" as const, purchasingQuantity: 0 as const, purchasingEligible: false as const }));
     const omittedSections = [!contents.assemblyViews.length ? "assembly views" : contents.assemblyViews.length < 4 ? "some assembly views" : "",
       !contents.componentDrawings ? "component drawings" : "", !contents.cuttingList.include ? "cutting list" : "", !contents.hardwareSchedule ? "hardware schedule" : "",
-      !contents.functionalDimensions ? "functional dimension details" : "", ...assemblyPlan.decisions.filter(d => !d.included).map(d => `${d.kind} assembly sheets`)].filter(Boolean);
+      !contents.functionalDimensions ? "functional dimension details" : "", !contents.contextualSections ? "contextual assembly sections" : "", ...assemblyPlan.decisions.filter(d => !d.included).map(d => `${d.kind} assembly sheets`)].filter(Boolean);
     const panels = result.components.filter(c => c.kind === "panel");
     const carcassAssembly = result.assemblies.find(a => a.id === gaPlan.source.carcassAssemblyId);
     if (!carcassAssembly) throw new Error("Carcass assembly reference is missing.");
@@ -124,6 +128,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
       sheets.push(listSheet);
     });
     sheets.push(...buildAssemblySheets(result, profile, assemblyPlan, layoutPage, sheet));
+    const sectionPresentation = buildContextualSections(result, profile, contextualSectionPlan, sheets, layoutPage, sheet);
     sheets.push(...functionalDetailSheets(result, profile, functionalDimensionPlan, layoutPage, sheet));
     const addTables = (prefix: string, subject: string, tables: ReturnType<typeof paginateSchedule>) => {
       tables.forEach((table, index) => {
@@ -157,7 +162,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     if (annotationIssues.length) return { document: null, issues: annotationIssues };
     const dimensionCoverage = componentDimensionCoverage(componentDimensionPlan, sheets.flatMap(s => s.viewports).filter(v => v.projection === "panel-face"), contents.componentDrawings);
     const functionalCoverage = functionalDimensionCoverage(functionalDimensionPlan, sheets, !!contents.functionalDimensions);
-    const document = { schemaVersion: 1 as const, specificationRevision: result.specificationRevision, template: options.template, projectionConvention: options.projectionConvention, standardsCandidate: "BS 8888:2025" as const, complianceVerified: false as const, manufacturingReady: false as const, sheets, componentSchedule, cuttingList, reconciliation, drawingAnnotations, gaPlan, assemblyPlan, componentDimensionPlan, componentDimensionCoverage: dimensionCoverage, functionalDimensionPlan, functionalDimensionCoverage: functionalCoverage, profile,
+    const document = { schemaVersion: 1 as const, specificationRevision: result.specificationRevision, template: options.template, projectionConvention: options.projectionConvention, standardsCandidate: "BS 8888:2025" as const, complianceVerified: false as const, manufacturingReady: false as const, sheets, componentSchedule, cuttingList, reconciliation, drawingAnnotations, gaPlan, assemblyPlan, componentDimensionPlan, componentDimensionCoverage: dimensionCoverage, functionalDimensionPlan, functionalDimensionCoverage: functionalCoverage, contextualSectionPlan, sectionPresentation, profile,
       output: { assemblyViews: [...contents.assemblyViews], componentDrawings: contents.componentDrawings, cuttingList: contents.cuttingList.include, hardwareSchedule: contents.hardwareSchedule, assemblySheets: { ...contents.assemblySheets }, omittedSections },
       hardware: { allowances: hardwareAllowances, approvedPurchasingItems: [] as [], policy: "approved-only" as const } };
     const planIssues = validateGADocument(document);

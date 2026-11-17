@@ -181,3 +181,7 @@ Required engineering/product review before corresponding implementation can be c
 | Required release scope, subset rules and company template examples | Manufacturing users and document control | Draft omissions visible; incomplete selections cannot become manufacturing packages. |
 
 This specification establishes a staged target, not a claim that any of these open engineering decisions have been settled. The [Phase 5B slice](drawing-architecture-roadmap.md#5-recommended-phase-5b-slice) deliberately implements only a small, testable part of the architecture.
+
+### Phase 5C.2B implementation note
+
+[Contextual sections and details](contextual-assembly-sections.md) provide a true rectangular-solid assembly section, cut-only hatching, source-linked functional reference repeats and an enlarged rear/back/base crop. Existing component dimensions and all 26 core functional requests remain on their current sheets. This implements a preliminary presentation slice only; datum/tolerance authority, machining/fixing detail and manufacturing-release requirements remain unfulfilled.

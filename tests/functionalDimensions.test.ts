@@ -3,13 +3,15 @@ import assert from "node:assert/strict";
 import { PDFArray, PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { createDemoChestSpecification, generateFurniture } from "../src/furniture";
 import type { FurnitureResult, FurnitureSpecification } from "../src/furniture";
-import { createFunctionalDimensionPlan, DEFAULT_FUNCTIONAL_REFERENCE_POLICY, generateDrawingDocument, getDrawingProfile, loadDrawingPreferences, measureParallelFaces, panelFaceReference, parseDrawingProfile, plotSheet, saveDrawingPreferences, validateFunctionalDimensionPlan, validateGADocument } from "../src/drawings";
+import { createFunctionalDimensionPlan, DEFAULT_FUNCTIONAL_REFERENCE_POLICY, generateDrawingDocument, loadDrawingPreferences, measureParallelFaces, panelFaceReference, parseDrawingProfile, plotSheet, saveDrawingPreferences, validateFunctionalDimensionPlan, validateGADocument } from "../src/drawings";
 import type { DrawingDocument, FunctionalKind, FunctionalDimensionPlan } from "../src/drawings";
 import { functionalDetailCollisions, functionalDetailView } from "../src/drawings/functionalDetails";
 import { containsRect, pointOnSegment, primitiveBounds } from "../src/drawings/annotationGeometry";
 import { panelEdges } from "../src/drawings/edgeVisibility";
 import { projectPoint } from "../src/drawings/projections";
 import { exportDrawingPDF, MM_TO_PT } from "../src/drawings/pdf";
+
+import { getPreSectionsProfile as getDrawingProfile } from "./drawingFixtures";
 
 const axes = ["x", "y", "z"] as const;
 const near = (a: number, b: number) => assert(Math.abs(a - b) < 1e-6, `${a} != ${b}`);

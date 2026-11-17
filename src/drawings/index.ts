@@ -18,3 +18,7 @@ export type * from "./planning/functionalTypes";
 export { createFunctionalDimensionPlan, validateFunctionalDimensionPlan } from "./planning/functionalDimensions";
 export { panelFaceReference, measureParallelFaces, DEFAULT_FUNCTIONAL_REFERENCE_POLICY } from "./planning/geometryReferences";
 // PDF is imported separately so browser preview does not eagerly load the exporter.
+export type * from "./planning/sectionTypes";
+export { createContextualSectionPlan, SECTION_VIEW_IDS } from "./planning/contextualSections";
+export { generateSectionGeometry, cropSectionGeometry } from "./sectionGeometry";
+export { contextualViewCollisions } from "./contextualSections";

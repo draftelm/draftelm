@@ -78,3 +78,7 @@ Hydrated production Chrome checks pass for hierarchical/panel GA callouts, all t
 `manufacturingReady` and `complianceVerified` remain **false**. Hardware stays at **160 screws, 8 brackets, 8 runners**, all unverified allowances, purchasing quantity zero, no approved purchasing items. Engineering review is still required for joints/fixings, installation, machining, tolerances, materials/finish/grain, loads/stability, manufacturing equivalence and release criteria. These drawings cover existing opaque axis-aligned rectangular panels, with one deterministic isometric camera; rotated/shaped parts, general hierarchy-family policies and dense arbitrary assemblies need additional reviewed rules. There is no full dimensioning engine, DXF/DWG export, assembly process specification or BS 8888/ISO compliance claim.
 
 No automatic commit or push is performed.
+
+## Contextual section extension (5C.2B)
+
+[Section A-A and detail B](contextual-assembly-sections.md) use real assembled panel intersections, preserving all assembly/occurrence/BOM identities. They fit below the carcass list on A1 or use cross-referenced SC continuation pages on smaller formats. Existing isometrics, balloons, parts lists and GA remain unchanged; functional FD coverage is retained.

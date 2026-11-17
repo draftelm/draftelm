@@ -5,7 +5,7 @@ const workshop: DrawingProfile = {
   sheet: { format: "A3", projectionConvention: "third-angle" },
   contents: { assemblyViews: ["front", "top", "right", "isometric"], componentDrawings: true,
     cuttingList: { include: true, placement: "after-components" }, hardwareSchedule: true,
-    assemblySheets: { exploded: true, drawers: true, carcass: true }, functionalDimensions: true },
+    assemblySheets: { exploded: true, drawers: true, carcass: true }, functionalDimensions: true, contextualSections: true },
   titleBlock: { projectName: "DRAFTELM", additionalFields: [] },
   numbering: { prefix: "DRF-CD", revision: "A", scheme: "by-sheet-kind", startAt: 1 },
   hardwarePurchasing: "approved-only", extensions: {},
@@ -32,6 +32,7 @@ export function profileFromOptions(options: DrawingOptions): DrawingProfile {
   profile.annotations.gaLevel = "panels";
   profile.contents.assemblySheets = { exploded: false, drawers: false, carcass: false };
   delete profile.contents.functionalDimensions;
+  delete profile.contents.contextualSections;
   return profile;
 }
 
@@ -57,16 +58,17 @@ export function parseDrawingProfile(value: unknown): { profile: DrawingProfile |
   if (!keys(s, ["format", "projectionConvention", "isometricMode"]) || !record(s) || !choice(s.format, ["A4", "A3", "A2", "A1"]) || !choice(s.projectionConvention, ["first-angle", "third-angle"]) ||
     (s.isometricMode !== undefined && !choice(s.isometricMode, ["visible-edges", "diagnostic-wireframe"]))) issues.push("Unsupported sheet size, projection or isometric mode.");
   const c = v.contents;
-  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule", ...(current ? ["assemblySheets", "functionalDimensions"] : [])]) || !record(c)) issues.push("Invalid drawing contents.");
+  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule", ...(current ? ["assemblySheets", "functionalDimensions", "contextualSections"] : [])]) || !record(c)) issues.push("Invalid drawing contents.");
   else {
     const assembly = c.assemblySheets;
+    if (c.contextualSections !== undefined && typeof c.contextualSections !== "boolean") issues.push("Contextual section visibility must be boolean.");
     if (c.functionalDimensions !== undefined && typeof c.functionalDimensions !== "boolean") issues.push("Functional dimension visibility must be boolean.");
     if (current && (!keys(assembly, ["exploded", "drawers", "carcass"]) || !record(assembly) || ["exploded", "drawers", "carcass"].some(k => typeof assembly[k] !== "boolean"))) issues.push("Invalid assembly-sheet settings.");
     if (!Array.isArray(c.assemblyViews) || c.assemblyViews.length > 4 || new Set(c.assemblyViews).size !== c.assemblyViews.length || Array.from(c.assemblyViews).some(p => !choice(p, ["front", "top", "right", "isometric"]))) issues.push("Assembly views must be distinct supported projections.");
     if (typeof c.componentDrawings !== "boolean" || typeof c.hardwareSchedule !== "boolean") issues.push("Sheet visibility must be boolean.");
     const cut = c.cuttingList;
     if (!keys(cut, ["include", "placement"]) || !record(cut) || typeof cut.include !== "boolean" || !choice(cut.placement, ["before-components", "after-components"])) issues.push("Invalid cutting-list settings.");
-    else if (Array.isArray(c.assemblyViews) && !c.assemblyViews.length && !c.componentDrawings && !cut.include && !c.hardwareSchedule && !c.functionalDimensions && !(record(assembly) && Object.values(assembly).some(x => x === true))) issues.push("Select at least one drawing view or schedule; empty PDFs are not generated.");
+    else if (Array.isArray(c.assemblyViews) && !c.assemblyViews.length && !c.componentDrawings && !cut.include && !c.hardwareSchedule && !c.functionalDimensions && !c.contextualSections && !(record(assembly) && Object.values(assembly).some(x => x === true))) issues.push("Select at least one drawing view or schedule; empty PDFs are not generated.");
   }
   const t = v.titleBlock;
   if (!keys(t, ["projectName", "companyName", "additionalFields"]) || !record(t) || !text(t.projectName) || (t.companyName !== undefined && !text(t.companyName, 60, true)) ||

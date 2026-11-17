@@ -542,3 +542,7 @@ These are proposed work packages, not fixed dates or commitments to implement al
 Engineering/quality review must define functional and inspection requirements, reference/datum choices, permissible tolerance policies, actual machining/fixings, finished-size/edging relationships, grain/finish rules and subassembly complexity. Company document control must choose durable numbering, approval roles, acceptable evidence/revocation, selected-scope release rules and layout examples. The application owner must select the future trust/persistence boundary and format/template tooling after those contracts are agreed.
 
 Phase 5A recommends the boundaries and first slice; it does not settle those engineering values or authorise a production release. No source files, validated geometry, runtime dependencies, commits or pushes are changed by these two documents.
+
+## Implemented Phase 5C.2B slice
+
+[Contextual assembly sections and details](contextual-assembly-sections.md) separate source-bound section definitions/intersections, cropped contextual geometry, functional measurement bindings and paper placement. The reusable half-space rectangular-solid kernel feeds shared SVG/PDF hatching/markers; a registered chest selector chooses one meaningful plane and detail. Existing FD coverage stays intact. This is a bounded preliminary capability, without arbitrary CAD section editing or manufacturing authority.

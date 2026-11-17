@@ -44,7 +44,7 @@ export function viewportText(view: DrawingViewport) {
 
 export function viewportPadding(view: DrawingViewport) {
   const { heading, notes } = viewportText(view);
-  return { left: Math.max(25, view.balloonMargin ?? 0), right: Math.max(8, view.balloonMargin ?? 0), top: 7 + (heading.length - 1) * 3.3 + (view.functionalDimension ? 5 : 0),
+  return { left: Math.max(25, view.balloonMargin ?? 0), right: Math.max(view.sectionData ? 14 : 8, view.balloonMargin ?? 0), top: 7 + (heading.length - 1) * 3.3 + (view.functionalDimension ? 5 : 0) + (view.sectionData?.kind === "detail" ? 28 : view.sectionData?.kind === "parent" ? 12 : view.sectionData ? 8 : 0),
     bottom: notes.length ? 15 + notes.length * 2.8 : 13 };
 }
 

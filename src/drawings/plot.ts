@@ -5,6 +5,7 @@ import { modelToSheet, plotDimension } from "./dimensionPlot";
 import { plotDrawingAnnotations } from "./annotationPlot";
 import { assertGADocument } from "./planning/gaValidation";
 import { canonicalDrawingSnapshot } from "./planning/gaPlan";
+import { plotSectionHatches, plotSectionMarkers } from "./sectionPlot";
 export { modelToSheet, plotDimension, formatDimension } from "./dimensionPlot";
 
 /** Both SVG and PDF consume these same paper-mm primitives. Text sizes/stroke
@@ -28,7 +29,9 @@ export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotE
   for (const view of sheet.viewports) {
     const { heading } = viewportText(view), notes = viewportNotes(view);
     heading.forEach((value, i) => text(view.frame.x + 3, view.frame.y + 4 + i * 3.3, value, 2.6, true));
-    for (const e of view.entities) out.push({ kind: "line", from: modelToSheet(view, e.from), to: modelToSheet(view, e.to), role: "geometry", width: view.projection === "isometric" ? 0.12 : formal ? 0.35 : 0.3, sourceId: e.id, references: e.references });
+    out.push(...plotSectionHatches(view, document.contextualSectionPlan.geometry?.cutFaces ?? []));
+    for (const e of view.entities) out.push({ kind: "line", from: modelToSheet(view, e.from), to: modelToSheet(view, e.to), role: "geometry", width: e.sectionRole === "cut" ? 0.45 : e.sectionRole === "projected" ? 0.18 : view.projection === "isometric" ? 0.12 : formal ? 0.35 : 0.3, sourceId: e.id, references: e.references });
+    out.push(...plotSectionMarkers(view));
     for (const d of view.dimensions) out.push(...plotDimension(view, d));
     for (const label of view.referenceLabels ?? []) out.push({ kind: "text", size: 2.5, ...label });
     // Reserved note bands participate in geometry fitting; no text is truncated.

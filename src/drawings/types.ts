@@ -22,6 +22,7 @@ export interface DrawingProfile {
     assemblySheets: { exploded: boolean; drawers: boolean; carcass: boolean };
     /** Omitted on saved older profiles: preserve their previous sheet selection. */
     functionalDimensions?: boolean;
+    contextualSections?: boolean;
   };
   titleBlock: { projectName: string; companyName?: string; additionalFields: TitleBlockField[] };
   numbering: { prefix: string; revision: string; scheme: "by-sheet-kind" | "sequential"; startAt: number };
@@ -37,7 +38,7 @@ export interface DrawingProfile {
   };
 }
 export type DrawingProfileV2 = Omit<DrawingProfile, "schemaVersion" | "contents" | "annotations"> & {
-  schemaVersion: 2; contents: Omit<DrawingProfile["contents"], "assemblySheets" | "functionalDimensions">;
+  schemaVersion: 2; contents: Omit<DrawingProfile["contents"], "assemblySheets" | "functionalDimensions" | "contextualSections">;
   annotations: Omit<DrawingProfile["annotations"], "gaLevel">;
 };
 export type DrawingProfileV1 = Omit<DrawingProfileV2, "schemaVersion" | "annotations"> & { schemaVersion: 1 };
@@ -45,6 +46,7 @@ export interface ComponentReference { componentId: string; assemblyId: string; b
 export interface DrawingLine {
   kind: "line"; id: string; from: Point2; to: Point2;
   references: ComponentReference[];
+  sectionRole?: "cut" | "projected";
 }
 export interface DrawingDimension {
   id: string; from: Point2; to: Point2; axis: "horizontal" | "vertical";
@@ -69,6 +71,8 @@ export interface DrawingViewport {
   thicknessDimension?: LinkedThicknessDimension;
   componentDimensionLayout?: ComponentDimensionLayout;
   functionalDimension?: FunctionalDimensionPlacement;
+  sectionData?: import("./planning/sectionTypes").SectionViewportData;
+  sectionMarkers?: import("./planning/sectionTypes").SectionReferenceMarker[];
   referenceLabels?: { sourceId: string; text: string; at: Point2; references: ComponentReference[] }[];
 }
 export interface SheetMetadata {
@@ -176,6 +180,8 @@ export interface DrawingDocument {
   componentDimensionCoverage: ComponentDimensionCoverage;
   functionalDimensionPlan: FunctionalDimensionPlan;
   functionalDimensionCoverage: FunctionalDimensionCoverage;
+  contextualSectionPlan: import("./planning/sectionTypes").ContextualSectionPlan;
+  sectionPresentation: import("./planning/sectionTypes").SectionPresentation | null;
   profile: DrawingProfile;
   output: {
     assemblyViews: Projection[]; componentDrawings: boolean; cuttingList: boolean;
@@ -193,7 +199,7 @@ export interface DrawingOptions {
 }
 export interface DrawingResult { document: DrawingDocument | null; issues: string[] }
 export type PlotEntity =
-  | { kind: "line"; from: Point2; to: Point2; width: number; role: "geometry" | "dimension" | "sheet" | "annotation"; sourceId?: string; references?: ComponentReference[] }
+  | { kind: "line"; from: Point2; to: Point2; width: number; role: "geometry" | "dimension" | "sheet" | "annotation" | "hatch"; sourceId?: string; references?: ComponentReference[] }
   | { kind: "polygon"; points: Point2[]; sourceId?: string; references?: ComponentReference[] }
   | { kind: "circle"; center: Point2; radius: number; width: number; filled?: boolean; sourceId?: string; references?: ComponentReference[] }
   | { kind: "text"; at: Point2; text: string; size: number; rotation?: number; align?: "start" | "middle"; bold?: boolean; sourceId?: string; references?: ComponentReference[] };
