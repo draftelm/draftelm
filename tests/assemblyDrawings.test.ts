@@ -1,9 +1,10 @@
+import { getPreFunctionalProfile as getDrawingProfile } from "./drawingFixtures";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PDFArray, PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { createDemoChestSpecification, generateFurniture, generateFurnitureBOM } from "../src/furniture";
 import type { FurnitureResult } from "../src/furniture";
-import { generateDrawingDocument, getDrawingProfile, loadDrawingPreferences, parseDrawingProfile, plotSheet, saveDrawingPreferences, validateGADocument, validateGeneralAssemblyPlan } from "../src/drawings";
+import { generateDrawingDocument, loadDrawingPreferences, parseDrawingProfile, plotSheet, saveDrawingPreferences, validateGADocument, validateGeneralAssemblyPlan } from "../src/drawings";
 import type { DrawingDocument } from "../src/drawings";
 import { exportDrawingPDF, MM_TO_PT } from "../src/drawings/pdf";
 import { assemblyPanels, createAssemblyDrawingPlan, translateDrawingPanels } from "../src/drawings/planning/assemblies";

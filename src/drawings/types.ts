@@ -1,6 +1,7 @@
 import type { BOMLine, Vector3 } from "../furniture";
 import type { GADimensionId, GeneralAssemblyPlan } from "./planning/types";
 import type { ComponentDimensionCoverage, ComponentDimensionId, ComponentDimensionLayout, ComponentDimensionPlan, DimensionPlacement, LinkedThicknessDimension } from "./planning/componentTypes";
+import type { FunctionalDimensionCoverage, FunctionalDimensionId, FunctionalDimensionPlacement, FunctionalDimensionPlan } from "./planning/functionalTypes";
 export interface Point2 { x: number; y: number }
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface Bounds2 { min: Point2; max: Point2 }
@@ -19,6 +20,8 @@ export interface DrawingProfile {
     cuttingList: { include: boolean; placement: "before-components" | "after-components" };
     hardwareSchedule: boolean;
     assemblySheets: { exploded: boolean; drawers: boolean; carcass: boolean };
+    /** Omitted on saved older profiles: preserve their previous sheet selection. */
+    functionalDimensions?: boolean;
   };
   titleBlock: { projectName: string; companyName?: string; additionalFields: TitleBlockField[] };
   numbering: { prefix: string; revision: string; scheme: "by-sheet-kind" | "sequential"; startAt: number };
@@ -34,7 +37,7 @@ export interface DrawingProfile {
   };
 }
 export type DrawingProfileV2 = Omit<DrawingProfile, "schemaVersion" | "contents" | "annotations"> & {
-  schemaVersion: 2; contents: Omit<DrawingProfile["contents"], "assemblySheets">;
+  schemaVersion: 2; contents: Omit<DrawingProfile["contents"], "assemblySheets" | "functionalDimensions">;
   annotations: Omit<DrawingProfile["annotations"], "gaLevel">;
 };
 export type DrawingProfileV1 = Omit<DrawingProfileV2, "schemaVersion" | "annotations"> & { schemaVersion: 1 };
@@ -46,7 +49,7 @@ export interface DrawingLine {
 export interface DrawingDimension {
   id: string; from: Point2; to: Point2; axis: "horizontal" | "vertical";
   valueMm: number; prefix?: string; offsetPaperMm: number; references: ComponentReference[];
-  semanticDimensionId?: GADimensionId | ComponentDimensionId;
+  semanticDimensionId?: GADimensionId | ComponentDimensionId | FunctionalDimensionId;
   equivalentDimensionIds?: ComponentDimensionId[];
   placement?: DimensionPlacement;
 }
@@ -65,6 +68,8 @@ export interface DrawingViewport {
   role?: "primary" | "supporting";
   thicknessDimension?: LinkedThicknessDimension;
   componentDimensionLayout?: ComponentDimensionLayout;
+  functionalDimension?: FunctionalDimensionPlacement;
+  referenceLabels?: { sourceId: string; text: string; at: Point2; references: ComponentReference[] }[];
 }
 export interface SheetMetadata {
   projectName: string; subject: string; drawingNumber: string; revision: string;
@@ -169,6 +174,8 @@ export interface DrawingDocument {
   assemblyPlan: import("./planning/assemblies").AssemblyDrawingPlan;
   componentDimensionPlan: ComponentDimensionPlan;
   componentDimensionCoverage: ComponentDimensionCoverage;
+  functionalDimensionPlan: FunctionalDimensionPlan;
+  functionalDimensionCoverage: FunctionalDimensionCoverage;
   profile: DrawingProfile;
   output: {
     assemblyViews: Projection[]; componentDrawings: boolean; cuttingList: boolean;

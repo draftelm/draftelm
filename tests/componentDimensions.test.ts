@@ -1,9 +1,10 @@
+import { getPreFunctionalProfile as getDrawingProfile } from "./drawingFixtures";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PDFArray, PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { createDemoChestSpecification, generateFurniture } from "../src/furniture";
 import type { FurnitureResult } from "../src/furniture";
-import { componentDimensionCollisions, componentDimensionId, componentFacePoint, createComponentDimensionPlan, DEFAULT_COMPONENT_DIMENSION_STYLE, fitComponentDimensions, generateDrawingDocument, getDrawingProfile, placeComponentDimensions, plotSheet, validateComponentDimensionPlan, validateGADocument } from "../src/drawings";
+import { componentDimensionCollisions, componentDimensionId, componentFacePoint, createComponentDimensionPlan, DEFAULT_COMPONENT_DIMENSION_STYLE, fitComponentDimensions, generateDrawingDocument, placeComponentDimensions, plotSheet, validateComponentDimensionPlan, validateGADocument } from "../src/drawings";
 import type { ComponentDimensionPlan, DrawingDocument } from "../src/drawings";
 import { componentFaceViewport } from "../src/drawings/planning/componentDimensions";
 import { componentDimensionCoverage } from "../src/drawings/componentDimensionLayout";

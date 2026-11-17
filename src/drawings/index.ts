@@ -14,4 +14,7 @@ export { createAssemblyDrawingPlan, translateDrawingPanels } from "./planning/as
 export type * from "./planning/componentTypes";
 export { createComponentDimensionPlan, validateComponentDimensionPlan, componentDimensionId, componentFacePoint } from "./planning/componentDimensions";
 export { componentDimensionCollisions, placeComponentDimensions, fitComponentDimensions, DEFAULT_COMPONENT_DIMENSION_STYLE } from "./componentDimensionLayout";
+export type * from "./planning/functionalTypes";
+export { createFunctionalDimensionPlan, validateFunctionalDimensionPlan } from "./planning/functionalDimensions";
+export { panelFaceReference, measureParallelFaces, DEFAULT_FUNCTIONAL_REFERENCE_POLICY } from "./planning/geometryReferences";
 // PDF is imported separately so browser preview does not eagerly load the exporter.

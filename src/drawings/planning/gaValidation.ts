@@ -8,6 +8,7 @@ import { createAssemblyDrawingPlan, translateDrawingPanels } from "./assemblies"
 import { assemblyVisibilityDiagnostics, createAssemblyScenes } from "../assemblySheets";
 import { validateScopedAnnotations } from "../assemblyAnnotations";
 import { validateComponentDimensionDocument } from "./componentValidation";
+import { validateFunctionalDimensionDocument } from "./functionalValidation";
 
 /** Validate frozen source/plan/presentation consistency at the shared render boundary.
  * Without a current engineering input this verifies the captured snapshot, not that
@@ -20,6 +21,7 @@ export function validateGADocument(document: DrawingDocument): string[] {
     const issues = validateGeneralAssemblyPlan(plan, source, document.profile, document.drawingAnnotations);
     if (issues.length) return issues;
     issues.push(...validateComponentDimensionDocument(document, source));
+    issues.push(...validateFunctionalDimensionDocument(document, source));
     issues.push(...reconcileDrawingParts(source, document.componentSchedule).issues.map(i => i.message));
     issues.push(...validateDrawingAnnotations(source, document.drawingAnnotations, document.sheets));
     const assemblyPlan = createAssemblyDrawingPlan(source, document.profile, plan.source.rootAssemblyId, plan.source.carcassAssemblyId);

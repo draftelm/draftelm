@@ -29,6 +29,7 @@ export function wrapDrawingText(value: string, width: number, size: number): str
 export function viewportNotes(view: DrawingViewport): { text: string; sourceId?: string; references?: ComponentReference[] }[] {
   const thickness = view.thicknessDimension?.status === "placed" ? view.thicknessDimension : undefined;
   return [
+    ...(view.functionalDimension?.status === "placed" && view.functionalDimension.valueMm === 0 ? [{ text: "Measured 0 mm (coincident reference planes)", sourceId: view.functionalDimension.representativeDimensionId, references: view.references }] : []),
     ...(thickness ? [{ text: `Thickness ${formatDimension(thickness.valueMm)} mm (normal to face)`, sourceId: thickness.id, references: thickness.references }] : []),
     ...view.annotations.map(text => ({ text })),
   ].flatMap(note => wrapDrawingText(note.text, view.frame.width - 6, 2).map(text => ({ ...note, text })));
@@ -43,7 +44,7 @@ export function viewportText(view: DrawingViewport) {
 
 export function viewportPadding(view: DrawingViewport) {
   const { heading, notes } = viewportText(view);
-  return { left: Math.max(25, view.balloonMargin ?? 0), right: Math.max(8, view.balloonMargin ?? 0), top: 7 + (heading.length - 1) * 3.3,
+  return { left: Math.max(25, view.balloonMargin ?? 0), right: Math.max(8, view.balloonMargin ?? 0), top: 7 + (heading.length - 1) * 3.3 + (view.functionalDimension ? 5 : 0),
     bottom: notes.length ? 15 + notes.length * 2.8 : 13 };
 }
 

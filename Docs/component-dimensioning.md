@@ -1,5 +1,7 @@
 # Phase 5C.1 — semantic rectangular component dimensioning
 
+**Phase 5C.2 update:** [Functional assembly dimensions and geometric references](functional-assembly-dimensions.md) now add source-bound gaps, reveals, clearances and offsets, with measured geometry separate from nominal intent. Optional FD sheets show core relationships while the clean GA and all component/BOM identities remain unchanged.
+
 The component sheets now resolve **length, width and thickness from validated panel geometry**, with source-bound semantic identities and automatic paper-space placement. The reference chest retains **29 physical panel occurrences and seven nominal blank groups**. Seven grouped drawings display 14 geometric dimensions and seven linked thickness annotations, covering all **87 occurrence-level measurements**. No cutting sizes, geometry, quantities or engineering formulas change.
 
 This is the rectangular-blank foundation of R05/R06 in the [Phase 5A specification](drawing-manufacturing-specification.md), using the presentation/semantic separation in the [architecture roadmap](drawing-architecture-roadmap.md). It is not the full functional, manufacturing-feature or inspection dimension engine described there.

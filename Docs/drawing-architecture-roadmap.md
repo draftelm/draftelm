@@ -1,5 +1,7 @@
 # Drawing architecture audit and roadmap — Phase 5A
 
+**Phase 5C.2 update:** [Functional assembly dimensions and geometric references](functional-assembly-dimensions.md) now add source-bound gaps, reveals, clearances and offsets, with measured geometry separate from nominal intent. Optional FD sheets show core relationships while the clean GA and all component/BOM identities remain unchanged.
+
 **Phase 5C.1 update:** [Semantic component dimensioning](component-dimensioning.md) now resolves length/width/thickness for every rectangular panel occurrence, with grouped traceability, collision-checked placement and linked normal-to-face thickness notes. GA/assembly semantics, profiles and source engineering/BOM remain unchanged.
 
 **Phase 5B.2 implementation update:** [Assembly hierarchy, exploded views and reusable subassembly sheets](assembly-drawings.md) now implement the preliminary rectangular-panel assembly slice. They preserve the engineering source and false readiness/compliance; the complete manufacturing/release architecture below remains staged.

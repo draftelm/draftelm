@@ -1,4 +1,6 @@
-# Furniture drawing package — through Phase 5C.1
+# Furniture drawing package — through Phase 5C.2
+
+**Phase 5C.2 update:** [Functional assembly dimensions and geometric references](functional-assembly-dimensions.md) now add source-bound gaps, reveals, clearances and offsets, with measured geometry separate from nominal intent. Optional FD sheets show core relationships while the clean GA and all component/BOM identities remain unchanged.
 
 **Phase 5C.1 update:** [Semantic component dimensioning](component-dimensioning.md) now resolves length/width/thickness for every rectangular panel occurrence, with grouped traceability, collision-checked placement and linked normal-to-face thickness notes. GA/assembly semantics, profiles and source engineering/BOM remain unchanged.
 
