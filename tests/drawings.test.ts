@@ -90,7 +90,8 @@ test("carcass sheet uses BOM identities, exact panel blanks and quantities", () 
   const refs = details.flatMap(v => v.references);
   assert.deepEqual(refs.map(r => r.componentId).sort(), result.components.filter(c => c.kind === "panel" && c.assemblyId === "chest/carcass").map(c => c.id).sort());
   assert(refs.every(r => result.bom.some(l => l.id === r.bomId && l.componentIds.includes(r.componentId))));
-  assert(details[0].annotations[0].includes("Qty 2")); assert(details[2].annotations[0].includes("Thickness 6 mm"));
+  assert(details[0].annotations[0].includes("Qty 2")); assert.equal(details[2].thicknessDimension?.valueMm, 6);
+  assert.equal(details[2].thicknessDimension?.presentation, "normal-to-face-note");
 });
 
 function points(entity: PlotEntity) {

@@ -1,5 +1,7 @@
+import { fitScale, positionViewport, scaleLabel } from "./viewports";
+export { fitScale, positionViewport, scaleLabel, VIEW_PADDING } from "./viewports";
 import type { FurnitureResult, PanelComponent } from "../furniture";
-import type { Bounds2, DrawingDimension, DrawingOptions, DrawingProfile, DrawingProfileV1, DrawingProfileV2, DrawingResult, DrawingSheet, DrawingViewport, Point2, Projection, ProjectionConvention, Rect, SheetFormat } from "./types";
+import type { DrawingOptions, DrawingProfile, DrawingProfileV1, DrawingProfileV2, DrawingResult, DrawingSheet, DrawingViewport, Projection, ProjectionConvention, Rect, SheetFormat } from "./types";
 import { bounds2, isometricLines, orthographicLines, panelReference } from "./projections";
 import { paginateSchedule, titleBlockExtraHeight, viewportPadding } from "./layout";
 import { createComponentSchedule, reconcileDrawingParts } from "./reconcile";
@@ -13,31 +15,13 @@ import type { GeneralAssemblyPlan } from "./planning/types";
 import { createAssemblyDrawingPlan } from "./planning/assemblies";
 import { createScopedAnnotations } from "./assemblyAnnotations";
 import { buildAssemblySheets } from "./assemblySheets";
+import { componentFaceViewport, createComponentDimensionPlan } from "./planning/componentDimensions";
+import { componentDimensionCoverage, fitComponentDimensions } from "./componentDimensionLayout";
 
 export const FORMAL_TEMPLATE_LABEL = "BS 8888 / ISO-style — compliance not yet verified";
 export const SHEET_FORMATS: Record<SheetFormat, { width: number; height: number }> = { A4: { width: 297, height: 210 }, A3: { width: 420, height: 297 }, A2: { width: 594, height: 420 }, A1: { width: 841, height: 594 } };
 export const DEFAULT_DRAWING_OPTIONS: DrawingOptions = { template: "workshop", projectionConvention: "third-angle", format: "A3", projectName: "DRAFTELM", drawingPrefix: "DRF-CD", revision: "A" };
-export const VIEW_PADDING = { left: 25, right: 8, top: 7, bottom: 13 };
 
-/** Largest conventional reduction that fits; no stretching and no rounding of model data. */
-export function fitScale(bounds: Bounds2, frame: Rect, padding = VIEW_PADDING): number {
-  const max = Math.min(1, (frame.width - padding.left - padding.right) / (bounds.max.x - bounds.min.x), (frame.height - padding.top - padding.bottom) / (bounds.max.y - bounds.min.y));
-  if (!(max > 0) || !Number.isFinite(max)) throw new Error("Sheet viewport cannot fit geometry.");
-  for (let decade = 1; decade <= 1e15; decade *= 10) for (const factor of [1, 2, 2.5, 5]) {
-    const scale = 1 / (decade * factor); if (scale <= max + 1e-12) return scale;
-  }
-  throw new Error("Model is too large for supported drawing scales.");
-}
-export function scaleLabel(scale: number) { return `1:${Number((1 / scale).toFixed(6))}`; }
-export function positionViewport(view: DrawingViewport, scale = fitScale(view.bounds, view.frame, viewportPadding(view))): DrawingViewport {
-  // Recheck the actual scale label as it can wrap onto another heading line.
-  const labelled = { ...view, scaleLabel: scaleLabel(scale) };
-  const fittedScale = Math.min(scale, fitScale(view.bounds, view.frame, viewportPadding(labelled)));
-  if (fittedScale !== scale) return positionViewport(view, fittedScale);
-  const f = view.frame, b = view.bounds, p = viewportPadding(labelled);
-  const center = { x: f.x + p.left + (f.width - p.left - p.right) / 2, y: f.y + p.top + (f.height - p.top - p.bottom) / 2 };
-  return { ...view, scale, scaleLabel: scaleLabel(scale), origin: { x: center.x - (b.min.x + b.max.x) / 2 * scale, y: center.y + (b.min.y + b.max.y) / 2 * scale } };
-}
 export function gaFrames(width: number, height: number, convention: ProjectionConvention): Record<Projection, Rect> {
   const cellWidth = (width - 20) / 2, cellHeight = (height - 85) / 2;
   const cell = (col: number, row: number): Rect => ({ x: 10 + col * cellWidth, y: 23 + row * cellHeight, width: cellWidth, height: cellHeight });
@@ -47,7 +31,7 @@ function viewport(id: string, label: string, projection: Projection, panels: Pan
   const entities = projection === "isometric" ? isometricLines(panels, mode) : orthographicLines(panels, projection);
   return { id, label, projection, entities, dimensions: [], frame, bounds: bounds2(entities.flatMap(e => [e.from, e.to])), origin: { x: 0, y: 0 }, scale: 1, scaleLabel: "1:1", annotations: [], references: panels.map(p => panelReference(p)) };
 }
-const dim = (id: string, from: Point2, to: Point2, axis: DrawingDimension["axis"], valueMm: number, references: DrawingDimension["references"], prefix?: string): DrawingDimension => ({ id, from, to, axis, valueMm, offsetPaperMm: 9, references, ...(prefix ? { prefix } : {}) });
+
 
 export function generateDrawingDocument(result: FurnitureResult, configuration: DrawingOptions | DrawingProfile | DrawingProfileV1 | DrawingProfileV2 = getDrawingProfile(), reusablePlan?: GeneralAssemblyPlan): DrawingResult {
   try {
@@ -99,24 +83,10 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     if (profile.annotations.balloons) for (const view of [front, top, right, iso]) view.balloonMargin = 16;
     const mainScale = Math.min(...[front, top, right].map(v => fitScale(v.bounds, v.frame, viewportPadding(v))));
     const views = [front, top, right].map(v => positionViewport(v, mainScale)); views.push(positionViewport(iso));
-    const componentViews: DrawingViewport[] = [];
-    // Use the engine's existing blank groups, retaining every carcass and drawer ID.
-    for (const line of result.bom.filter(l => l.kind === "panel")) {
-      const members = panels.filter(p => line.componentIds.includes(p.id)), p = members[0];
-      if (!p || !line.cutSize) throw new Error("Panel BOM link is incomplete.");
-      const faceAxes = (["x", "y", "z"] as const).filter(a => a !== p.thicknessAxis).sort((a, b) => p.dimensions[b] - p.dimensions[a]);
-      const u = faceAxes[0], v = faceAxes[1], min = { x: p.position[u], y: p.position[v] }, max = { x: min.x + p.dimensions[u], y: min.y + p.dimensions[v] };
-      const references = members.map(m => panelReference(m, line.id));
-      const corners = [min, { x: max.x, y: min.y }, max, { x: min.x, y: max.y }];
-      componentViews.push({ id: `component-${line.id}`, label: line.partNames.filter(name => members.some(m => m.name === name)).join(" / "), projection: "panel-face",
-        entities: corners.map((from, i) => ({ kind: "line", id: `${line.id}-edge-${i}`, from, to: corners[(i + 1) % 4], references })),
-        dimensions: [dim(`${line.id}-length`, min, { x: max.x, y: min.y }, "horizontal", p.dimensions[u], references), dim(`${line.id}-width`, min, { x: min.x, y: max.y }, "vertical", p.dimensions[v], references)],
-        bounds: { min, max }, frame: { x: 0, y: 0, width: 0, height: 0 }, origin: { x: 0, y: 0 }, scale: 1, scaleLabel: "1:1", references,
-        annotations: [`Qty ${line.quantity} | Thickness ${p.thickness} mm`,
-          p.materialId.length <= 40 ? `Material: ${p.materialId}` : contents.cuttingList.include ? `Material: see ${line.id} in schedule.` : "Full material ID retained internally; cutting list hidden.",
-          contents.cuttingList.include ? `All ${members.length} unique part IDs: ${line.id} in schedule.` : `BOM ${line.id}: ${members.length} IDs retained internally; list hidden.`, "Grain and edge treatment unspecified."],
-      });
-    }
+    const componentDimensionPlan = createComponentDimensionPlan(result, profile);
+    // Keep existing BOM ordering/pagination; identities and values come from the semantic plan.
+    const componentViews = result.bom.filter(line => line.kind === "panel").map(line =>
+      componentFaceViewport(componentDimensionPlan, componentDimensionPlan.groups.find(g => g.bomId === line.id)!, contents.cuttingList.include));
     const reconciliation = reconcileDrawingParts(result, componentSchedule, componentViews);
     if (!reconciliation.valid) return { document: null, issues: reconciliation.issues.map(issue => issue.message) };
     const columns = Math.max(1, Math.min(3, Math.floor((page.width - 20) / 125)));
@@ -162,9 +132,12 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     };
     if (contents.cuttingList.placement === "before-components") addTables("CL", "Component schedule / nominal cutting list", panelTables);
     chunks.forEach((chunk, index) => {
-      const fitted = chunk.map((v, i) => positionViewport({ ...v, frame: { x: 10 + i * (page.width - 20) / chunk.length, y: 28, width: (page.width - 20) / chunk.length, height: layoutPage.height - 100 } }));
+      const fitted = chunk.map((v, i) => fitComponentDimensions({ ...v, frame: { x: 10 + i * (page.width - 20) / chunk.length, y: 28, width: (page.width - 20) / chunk.length, height: layoutPage.height - 100 } }));
       const carcassOnly = chunk.every(v => v.references.every(r => r.assemblyId === carcassAssembly.id));
-      sheets.push(sheet(`CP-${String(index + 1).padStart(3, "0")}`, carcassOnly ? "Carcass components" : "Panel components", sheets.length + 1, fitted));
+      const componentSheet = sheet(`CP-${String(index + 1).padStart(3, "0")}`, carcassOnly ? "Carcass components" : "Panel components", sheets.length + 1, fitted);
+      const unplaced = fitted.flatMap(v => v.componentDimensionLayout!.diagnostics).length;
+      componentSheet.annotations = [unplaced ? `Nominal blank dimensions: ${unplaced} placement diagnostics; see preview coverage. Thickness is normal to face.` : "Nominal blank dimensions; linked thickness is normal to face. No finished sizes or tolerances supplied."];
+      sheets.push(componentSheet);
     });
     if (contents.cuttingList.placement === "after-components") addTables("CL", "Component schedule / nominal cutting list", panelTables);
     addTables("HW", "UNVERIFIED hardware allowances", hardwareTables);
@@ -177,7 +150,8 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     });
     const annotationIssues = validateDrawingAnnotations(result, drawingAnnotations, sheets);
     if (annotationIssues.length) return { document: null, issues: annotationIssues };
-    const document = { schemaVersion: 1 as const, specificationRevision: result.specificationRevision, template: options.template, projectionConvention: options.projectionConvention, standardsCandidate: "BS 8888:2025" as const, complianceVerified: false as const, manufacturingReady: false as const, sheets, componentSchedule, cuttingList, reconciliation, drawingAnnotations, gaPlan, assemblyPlan, profile,
+    const dimensionCoverage = componentDimensionCoverage(componentDimensionPlan, sheets.flatMap(s => s.viewports).filter(v => v.projection === "panel-face"), contents.componentDrawings);
+    const document = { schemaVersion: 1 as const, specificationRevision: result.specificationRevision, template: options.template, projectionConvention: options.projectionConvention, standardsCandidate: "BS 8888:2025" as const, complianceVerified: false as const, manufacturingReady: false as const, sheets, componentSchedule, cuttingList, reconciliation, drawingAnnotations, gaPlan, assemblyPlan, componentDimensionPlan, componentDimensionCoverage: dimensionCoverage, profile,
       output: { assemblyViews: [...contents.assemblyViews], componentDrawings: contents.componentDrawings, cuttingList: contents.cuttingList.include, hardwareSchedule: contents.hardwareSchedule, assemblySheets: { ...contents.assemblySheets }, omittedSections },
       hardware: { allowances: hardwareAllowances, approvedPurchasingItems: [] as [], policy: "approved-only" as const } };
     const planIssues = validateGADocument(document);

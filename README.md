@@ -60,3 +60,5 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
 [Phase 5B.2 assembly drawings](Docs/assembly-drawings.md) add a deterministic exploded cabinet sheet and reusable assembled/exploded drawer and carcass sheets. Default GA callouts identify carcass and drawer assemblies; scoped lists retain original panel/BOM links and quantities. Version 3 profiles include sheet switches and migrate older saved output safely. All 29 panels and engineering/BOM formulas remain unchanged; hidden/unplaced drawing items are reported explicitly.
+
+[Phase 5C.1 component dimensioning](Docs/component-dimensioning.md) adds source-bound length/width/thickness semantics for all 29 panel occurrences. Seven grouped drawings cover 87 occurrence measurements with geometric face dimensions, linked normal-to-face thickness notes, automatic collision checks and explicit missing-placement coverage. Preview and PDF share the same vectors; engineering/BOM values and false manufacturing/compliance flags are preserved.

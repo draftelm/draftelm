@@ -1,5 +1,6 @@
 import type { BOMLine, Vector3 } from "../furniture";
 import type { GADimensionId, GeneralAssemblyPlan } from "./planning/types";
+import type { ComponentDimensionCoverage, ComponentDimensionId, ComponentDimensionLayout, ComponentDimensionPlan, DimensionPlacement, LinkedThicknessDimension } from "./planning/componentTypes";
 export interface Point2 { x: number; y: number }
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface Bounds2 { min: Point2; max: Point2 }
@@ -45,7 +46,9 @@ export interface DrawingLine {
 export interface DrawingDimension {
   id: string; from: Point2; to: Point2; axis: "horizontal" | "vertical";
   valueMm: number; prefix?: string; offsetPaperMm: number; references: ComponentReference[];
-  semanticDimensionId?: GADimensionId;
+  semanticDimensionId?: GADimensionId | ComponentDimensionId;
+  equivalentDimensionIds?: ComponentDimensionId[];
+  placement?: DimensionPlacement;
 }
 export interface DrawingViewport {
   id: string; label: string; projection: Projection | "panel-face";
@@ -60,6 +63,8 @@ export interface DrawingViewport {
   /** Presentation translations in engine millimetres; source panels stay immutable. */
   presentationOffsets?: Record<string, Vector3>;
   role?: "primary" | "supporting";
+  thicknessDimension?: LinkedThicknessDimension;
+  componentDimensionLayout?: ComponentDimensionLayout;
 }
 export interface SheetMetadata {
   projectName: string; subject: string; drawingNumber: string; revision: string;
@@ -162,6 +167,8 @@ export interface DrawingDocument {
   drawingAnnotations: DrawingAnnotationModel;
   gaPlan: GeneralAssemblyPlan;
   assemblyPlan: import("./planning/assemblies").AssemblyDrawingPlan;
+  componentDimensionPlan: ComponentDimensionPlan;
+  componentDimensionCoverage: ComponentDimensionCoverage;
   profile: DrawingProfile;
   output: {
     assemblyViews: Projection[]; componentDrawings: boolean; cuttingList: boolean;
@@ -180,7 +187,7 @@ export interface DrawingOptions {
 export interface DrawingResult { document: DrawingDocument | null; issues: string[] }
 export type PlotEntity =
   | { kind: "line"; from: Point2; to: Point2; width: number; role: "geometry" | "dimension" | "sheet" | "annotation"; sourceId?: string; references?: ComponentReference[] }
-  | { kind: "polygon"; points: Point2[] }
+  | { kind: "polygon"; points: Point2[]; sourceId?: string; references?: ComponentReference[] }
   | { kind: "circle"; center: Point2; radius: number; width: number; filled?: boolean; sourceId?: string; references?: ComponentReference[] }
   | { kind: "text"; at: Point2; text: string; size: number; rotation?: number; align?: "start" | "middle"; bold?: boolean; sourceId?: string; references?: ComponentReference[] };
 export interface Bounds3 { min: Vector3; max: Vector3 }

@@ -1,5 +1,7 @@
 # Drawing and manufacturing documentation specification — Phase 5A
 
+**Phase 5C.1 update:** [Semantic component dimensioning](component-dimensioning.md) now resolves length/width/thickness for every rectangular panel occurrence, with grouped traceability, collision-checked placement and linked normal-to-face thickness notes. GA/assembly semantics, profiles and source engineering/BOM remain unchanged.
+
 **Phase 5B.2 implementation update:** [Assembly hierarchy, exploded views and reusable subassembly sheets](assembly-drawings.md) now implement the preliminary rectangular-panel assembly slice. They preserve the engineering source and false readiness/compliance; the complete manufacturing/release architecture below remains staged.
 
 **Status:** proposed technical specification for the agreed product requirements; architecture planning only. **Audit date:** 16 November 2026. No feature, release approval or standards certification is created by this document. Implementation sequencing and interface proposals are in [the architecture roadmap](drawing-architecture-roadmap.md).

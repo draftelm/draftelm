@@ -11,4 +11,7 @@ export { createGeneralAssemblyPlan, validateGeneralAssemblyPlan } from "./planni
 export { validateGADocument } from "./planning/gaValidation";
 export type { AssemblyDrawingPlan, AssemblyDrawingGroup, DrawingAssemblyNode } from "./planning/assemblies";
 export { createAssemblyDrawingPlan, translateDrawingPanels } from "./planning/assemblies";
+export type * from "./planning/componentTypes";
+export { createComponentDimensionPlan, validateComponentDimensionPlan, componentDimensionId, componentFacePoint } from "./planning/componentDimensions";
+export { componentDimensionCollisions, placeComponentDimensions, fitComponentDimensions, DEFAULT_COMPONENT_DIMENSION_STYLE } from "./componentDimensionLayout";
 // PDF is imported separately so browser preview does not eagerly load the exporter.

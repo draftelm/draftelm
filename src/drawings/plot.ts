@@ -1,6 +1,6 @@
 import type { DrawingDocument, DrawingSheet, PlotEntity, Point2 } from "./types";
 import { FORMAL_TEMPLATE_LABEL } from "./generate";
-import { titleBlockExtraHeight, titleBlockFields, viewportText, wrapDrawingText } from "./layout";
+import { titleBlockExtraHeight, titleBlockFields, viewportNotes, viewportText, wrapDrawingText } from "./layout";
 import { modelToSheet, plotDimension } from "./dimensionPlot";
 import { plotDrawingAnnotations } from "./annotationPlot";
 import { assertGADocument } from "./planning/gaValidation";
@@ -26,12 +26,12 @@ export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotE
   rect(10, 10, sheet.widthMm - 20, sheet.heightMm - 20);
   text(13, 17, formal ? FORMAL_TEMPLATE_LABEL : "Furniture Workshop - preliminary drawing", 3, true);
   for (const view of sheet.viewports) {
-    const { heading, notes } = viewportText(view);
+    const { heading } = viewportText(view), notes = viewportNotes(view);
     heading.forEach((value, i) => text(view.frame.x + 3, view.frame.y + 4 + i * 3.3, value, 2.6, true));
     for (const e of view.entities) out.push({ kind: "line", from: modelToSheet(view, e.from), to: modelToSheet(view, e.to), role: "geometry", width: view.projection === "isometric" ? 0.12 : formal ? 0.35 : 0.3, sourceId: e.id, references: e.references });
     for (const d of view.dimensions) out.push(...plotDimension(view, d));
     // Reserved note bands participate in geometry fitting; no text is truncated.
-    notes.forEach((value, i) => text(view.frame.x + 3, view.frame.y + view.frame.height - 3 - (notes.length - 1 - i) * 2.8, value, 2));
+    notes.forEach((note, i) => out.push({ kind: "text", at: { x: view.frame.x + 3, y: view.frame.y + view.frame.height - 3 - (notes.length - 1 - i) * 2.8 }, size: 2, ...note }));
   }
   if (sheet.table) {
     const table = sheet.table;

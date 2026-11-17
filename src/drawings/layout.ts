@@ -1,4 +1,5 @@
-import type { DrawingScheduleRow, DrawingTable, DrawingTableRow, DrawingViewport, SheetMetadata } from "./types";
+import type { ComponentReference, DrawingScheduleRow, DrawingTable, DrawingTableRow, DrawingViewport, SheetMetadata } from "./types";
+import { formatDimension } from "./dimensionPlot";
 
 export function titleBlockFields(metadata: Pick<SheetMetadata, "companyName" | "additionalFields">) {
   return [...(metadata.companyName?.trim() ? [{ label: "COMPANY", value: metadata.companyName }] : []), ...(metadata.additionalFields ?? [])];
@@ -25,10 +26,18 @@ export function wrapDrawingText(value: string, width: number, size: number): str
   });
 }
 
+export function viewportNotes(view: DrawingViewport): { text: string; sourceId?: string; references?: ComponentReference[] }[] {
+  const thickness = view.thicknessDimension?.status === "placed" ? view.thicknessDimension : undefined;
+  return [
+    ...(thickness ? [{ text: `Thickness ${formatDimension(thickness.valueMm)} mm (normal to face)`, sourceId: thickness.id, references: thickness.references }] : []),
+    ...view.annotations.map(text => ({ text })),
+  ].flatMap(note => wrapDrawingText(note.text, view.frame.width - 6, 2).map(text => ({ ...note, text })));
+}
+
 export function viewportText(view: DrawingViewport) {
   return {
     heading: wrapDrawingText(`${view.label} | ${view.scaleLabel}`, view.frame.width - 6, 2.6),
-    notes: view.annotations.flatMap(note => wrapDrawingText(note, view.frame.width - 6, 2)),
+    notes: viewportNotes(view).map(note => note.text),
   };
 }
 

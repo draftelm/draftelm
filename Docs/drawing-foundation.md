@@ -1,4 +1,6 @@
-# Furniture drawing package — through Phase 5B.2
+# Furniture drawing package — through Phase 5C.1
+
+**Phase 5C.1 update:** [Semantic component dimensioning](component-dimensioning.md) now resolves length/width/thickness for every rectangular panel occurrence, with grouped traceability, collision-checked placement and linked normal-to-face thickness notes. GA/assembly semantics, profiles and source engineering/BOM remain unchanged.
 
 **Phase 5B.2 update:** [Exploded assembly and subassembly drawings](assembly-drawings.md) now add EA/DS/CS sheets, scoped assembly callouts and profile-v3 migration. Current built-in A3 defaults have nine sheets; the six-sheet/panel-callout descriptions below document the earlier presentation, retained by migrated v1/v2 profiles and legacy options. Geometry, all 29 panels, four GA dimensions and false release/compliance flags are preserved.
 

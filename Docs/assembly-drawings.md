@@ -1,5 +1,7 @@
 # Phase 5B.2 — exploded assembly and subassembly drawings
 
+**Phase 5C.1 update:** [Semantic component dimensioning](component-dimensioning.md) now resolves length/width/thickness for every rectangular panel occurrence, with grouped traceability, collision-checked placement and linked normal-to-face thickness notes. GA/assembly semantics, profiles and source engineering/BOM remain unchanged.
+
 The default A3 Workshop and Engineering packages now contain **nine sheets**: GA, exploded assembly (EA), reusable drawer subassembly (DS), carcass subassembly (CS), three component sheets, cutting list and unverified hardware schedule. Existing component drawings, seven blank groups, all **29 physical panel occurrences**, geometry/BOM formulas and the four GA measurements remain unchanged. First-/third-angle supporting-view placement and the clean closed GA isometric remain as established in [Phase 5B.1](isometric-visibility.md).
 
 ## Identity and hierarchy
