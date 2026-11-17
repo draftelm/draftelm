@@ -1,14 +1,20 @@
 # Drawing and manufacturing documentation specification — Phase 5A
 
+**Phase 5B.2 implementation update:** [Assembly hierarchy, exploded views and reusable subassembly sheets](assembly-drawings.md) now implement the preliminary rectangular-panel assembly slice. They preserve the engineering source and false readiness/compliance; the complete manufacturing/release architecture below remains staged.
+
 **Status:** proposed technical specification for the agreed product requirements; architecture planning only. **Audit date:** 16 November 2026. No feature, release approval or standards certification is created by this document. Implementation sequencing and interface proposals are in [the architecture roadmap](drawing-architecture-roadmap.md).
 
 ## 1. Scope, authority and current baseline
+
+**Phase 5B.1 update:** [clean isometric visibility](isometric-visibility.md) is now implemented for current opaque axis-aligned panels, with a diagnostic wireframe option. It adds no manufacturing approval or dimension scope.
+
+**Phase 5B update (17 November 2026):** the [revision-bound GA slice](general-assembly-planning.md) now implements a large isometric primary, semantic records for the four existing nominal dimensions, preliminary display-coverage diagnostics and shared preview/PDF validation. The Phase 5A audit below is historical; current A3 defaults are 1:10 isometric / 1:20 supporting views. The remaining requirements in this specification remain staged targets; manufacturing readiness and compliance verification remain false.
 
 DRAFTELM will generate a manufacturer-oriented documentation set from validated engineering information: general assembly (GA), warranted subassemblies, every unique component, machining/details, schedules, inspection dimensions and revision-consistent downloads. Presentation is configurable; engineering values remain controlled. This is a constrained documentation system rather than a general-purpose CAD editor. G-code generation is outside scope.
 
 The authority chain is **engineering specification/result → existing component IDs and BOM → validated manufacturing information and coverage requirements → semantic drawing plan → presentation/layout → export artifacts → authorised release assessment**. Drawing tables and spreadsheets are projections of this chain, not independent BOM calculators. New manufacturing information needs an explicit engineering/metadata authority and revision; the renderer cannot supply missing design decisions.
 
-Observed current implementation, through Phase 4C.2:
+Historical baseline audited in Phase 5A, through Phase 4C.2:
 
 - `src/furniture` generates schema-v2 chest assemblies, global panel positions, validation, revision-bound assumptions and the authoritative BOM. Root, carcass and four drawer assemblies already exist. Panel positions are global minimum corners; assembly transforms must not be added again.
 - The reference carcass is **900 × 850 × 500 mm**, with 18 mm carcass panels, four drawers and a **864 × 814 × 6 mm** recessed back at zero nominal edge gap and 10 mm rear inset. These validated nominal geometries remain unchanged.

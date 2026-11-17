@@ -1,9 +1,10 @@
+import { getPanelRegressionProfile as getDrawingProfile } from "./drawingFixtures";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { createDemoChestSpecification, generateFurniture } from "../src/furniture";
 import type { PanelComponent } from "../src/furniture";
-import { createDrawingAnnotations, DRAWING_PREFERENCES_KEY, generateDrawingDocument, getDrawingProfile, loadDrawingPreferences, parseDrawingProfile, plotSheet, saveDrawingPreferences, validateDrawingAnnotations } from "../src/drawings";
+import { createDrawingAnnotations, DRAWING_PREFERENCES_KEY, generateDrawingDocument,  loadDrawingPreferences, parseDrawingProfile, plotSheet, saveDrawingPreferences, validateDrawingAnnotations } from "../src/drawings";
 import type { DrawingDocument } from "../src/drawings";
 import { modelToSheet, plotDimension } from "../src/drawings/dimensionPlot";
 import { anchorIsVisible, BALLOON_STYLE, balloonBounds, containsRect, overlaps, panelEdges, pointOnSegment, primitiveBounds, segmentHitsRect, segmentsIntersect } from "../src/drawings/annotationGeometry";
@@ -207,20 +208,20 @@ test("annotation reconciliation flags changed quantities, missing items, wrong b
   }
 });
 
-test("v1 profile/preferences migrate without enabling new output, while v2 saved settings and reset defaults round-trip", () => {
-  const legacy = structuredClone(getDrawingProfile()) as unknown as Record<string, unknown>; delete legacy.annotations; legacy.schemaVersion = 1;
+test("v1 profile/preferences migrate without enabling new output, while current saved settings round-trip", () => {
+  const legacy = structuredClone(getDrawingProfile()) as unknown as Record<string, unknown>; delete legacy.annotations; delete (legacy.contents as Record<string, unknown>).assemblySheets; legacy.schemaVersion = 1;
   const before = JSON.stringify(legacy), parsed = parseDrawingProfile(legacy); assert(parsed.profile);
-  assert.equal(parsed.profile.schemaVersion, 2); assert.equal(parsed.profile.annotations.balloons, false); assert.equal(parsed.profile.annotations.assemblyPartsList, false);
+  assert.equal(parsed.profile.schemaVersion, 3); assert.equal(parsed.profile.annotations.balloons, false); assert.equal(parsed.profile.annotations.assemblyPartsList, false);
   assert.equal(JSON.stringify(legacy), before);
   const values = new Map<string, string>([[DRAWING_PREFERENCES_KEY, JSON.stringify({ schemaVersion: 1, baseProfileId: "furniture-workshop", profile: legacy })]]);
   const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); } };
   const oldRaw = values.get(DRAWING_PREFERENCES_KEY), loaded = loadDrawingPreferences(storage); assert(loaded.profile); assert(loaded.message.includes("migrated"));
   assert.equal(values.get(DRAWING_PREFERENCES_KEY), oldRaw, "load must not rewrite saved data");
-  loaded.profile.annotations = { balloons: false, assemblyPartsList: true, balloonDisplay: "visible-occurrences", itemNumberStyle: "prefixed" };
+  loaded.profile.annotations = { gaLevel: "panels", balloons: false, assemblyPartsList: true, balloonDisplay: "visible-occurrences", itemNumberStyle: "prefixed" };
   assert(saveDrawingPreferences(storage, loaded.profile, loaded.baseProfileId!).profile);
   const restored = loadDrawingPreferences(storage); assert(restored.profile);
   assert.deepEqual(restored.profile.annotations, loaded.profile.annotations);
-  assert.equal(JSON.parse(values.get(DRAWING_PREFERENCES_KEY)!).schemaVersion, 2);
+  assert.equal(JSON.parse(values.get(DRAWING_PREFERENCES_KEY)!).schemaVersion, 3);
   assert.equal(getDrawingProfile().annotations.balloons, true);
 });
 
@@ -229,7 +230,7 @@ test("invalid/future annotation settings are rejected rather than silently dropp
   for (const annotation of [{ ...p.annotations, balloons: "yes" }, { ...p.annotations, balloonDisplay: "invented" }, { ...p.annotations, itemNumberStyle: "hardware-approved" }, { ...p.annotations, future: true }]) {
     assert.equal(parseDrawingProfile({ ...p, annotations: annotation }).profile, null);
   }
-  assert.equal(parseDrawingProfile({ ...p, schemaVersion: 3 }).profile, null);
+  assert.equal(parseDrawingProfile({ ...p, schemaVersion: 4 }).profile, null);
 });
 
 test("annotation generation is immutable and keeps hardware allowances outside numbered panel/purchasing items", () => {

@@ -1,8 +1,9 @@
+import { getPanelRegressionProfile as getDrawingProfile } from "./drawingFixtures";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { createDemoChestSpecification, generateFurniture } from "../src/furniture";
-import { DEFAULT_DRAWING_OPTIONS, DRAWING_PREFERENCES_KEY, generateDrawingDocument, getDrawingProfile, loadDrawingPreferences, parseDrawingProfile, plotSheet, reconcileDrawingParts, saveDrawingPreferences, SHEET_FORMATS } from "../src/drawings";
+import { DEFAULT_DRAWING_OPTIONS, DRAWING_PREFERENCES_KEY, generateDrawingDocument,  loadDrawingPreferences, parseDrawingProfile, plotSheet, reconcileDrawingParts, saveDrawingPreferences, SHEET_FORMATS } from "../src/drawings";
 import { exportDrawingPDF, MM_TO_PT } from "../src/drawings/pdf";
 import { titleBlockExtraHeight } from "../src/drawings/layout";
 import type { DrawingDocument, DrawingProfile, PlotEntity, Projection } from "../src/drawings";
@@ -23,10 +24,10 @@ function texts(document: DrawingDocument) {
   return document.sheets.flatMap(s => plotSheet(document, s)).filter(e => e.kind === "text").map(e => e.text);
 }
 
-test("Workshop profile preserves the six-sheet Phase 4B default and legacy options API", () => {
+test("Panel-only profile preserves the six-sheet Phase 4B presentation and legacy options API", () => {
   const { result, document } = generate();
   const legacy = generateDrawingDocument(result, DEFAULT_DRAWING_OPTIONS); assert(legacy.document);
-  assert.equal(document.profile.schemaVersion, 2); assert.equal(document.profile.id, "furniture-workshop");
+  assert.equal(document.profile.schemaVersion, 3); assert.equal(document.profile.id, "furniture-workshop");
   assert.deepEqual(document.sheets.map(s => s.id), ["GA-001", "CP-001", "CP-002", "CP-003", "CL-001", "HW-001"]);
   const compatible = getDrawingProfile(); compatible.annotations.balloons = false; compatible.annotations.assemblyPartsList = false;
   assert.deepEqual(generate(compatible).document, legacy.document);
@@ -69,7 +70,7 @@ test("all 127 nonempty visibility combinations preserve full internal reconcilia
 });
 
 test("empty settings withhold output and report a useful correction", () => {
-  const p = getDrawingProfile(); p.contents = { assemblyViews: [], componentDrawings: false, cuttingList: { include: false, placement: "after-components" }, hardwareSchedule: false };
+  const p = getDrawingProfile(); p.contents = { assemblySheets: { exploded: false, drawers: false, carcass: false }, assemblyViews: [], componentDrawings: false, cuttingList: { include: false, placement: "after-components" }, hardwareSchedule: false };
   const generated = generateDrawingDocument(generateFurniture(createDemoChestSpecification()), p);
   assert.equal(generated.document, null); assert(generated.issues.some(i => i.includes("at least one")));
 });
@@ -96,9 +97,9 @@ test("omitted cutting lists have no dangling schedule instructions in component 
 
 test("assembly scale declarations include only selected views", () => {
   const p = getDrawingProfile(); p.contents.assemblyViews = ["isometric"];
-  assert.equal(generate(p).document.sheets[0].metadata.scale, "iso 1:20");
+  assert.equal(generate(p).document.sheets[0].metadata.scale, "iso 1:10 primary");
   p.contents.assemblyViews = ["front"];
-  assert.equal(generate(p).document.sheets[0].metadata.scale, "1:20 main");
+  assert.equal(generate(p).document.sheets[0].metadata.scale, "1:10 orthographic");
 });
 
 for (const scheme of ["by-sheet-kind", "sequential"] as const) test(`${scheme} numbering remains unique and contiguous after cutting-list reordering and omissions`, () => {
@@ -156,7 +157,7 @@ test("missing, corrupted, oversized and unsupported saved preferences leave curr
 });
 
 const invalidProfiles: [string, (p: DrawingProfile) => unknown][] = [
-  ["future version", p => ({ ...p, schemaVersion: 3 })], ["unknown root fields", p => ({ ...p, manufacturingReady: true })],
+  ["future version", p => ({ ...p, schemaVersion: 4 })], ["unknown root fields", p => ({ ...p, manufacturingReady: true })],
   ["geometry overrides", p => ({ ...p, dimensions: { width: 1000 } })], ["purchasing override", p => ({ ...p, hardwarePurchasing: "all" })],
   ["duplicate views", p => ({ ...p, contents: { ...p.contents, assemblyViews: ["front", "front"] } })],
   ["unknown view", p => ({ ...p, contents: { ...p.contents, assemblyViews: ["perspective"] } })],
@@ -212,7 +213,7 @@ for (const selection of ["cutting-only", "hardware-only", "front-only", "custom-
   const p = getDrawingProfile("engineering"); p.sheet.format = "A4";
   if (selection === "front-only") p.annotations.assemblyPartsList = false;
   p.titleBlock.companyName = "Example Joinery";
-  if (selection !== "custom-package") p.contents = { assemblyViews: selection === "front-only" ? ["front"] : [], componentDrawings: false,
+  if (selection !== "custom-package") p.contents = { assemblySheets: { exploded: false, drawers: false, carcass: false }, assemblyViews: selection === "front-only" ? ["front"] : [], componentDrawings: false,
     cuttingList: { include: selection === "cutting-only", placement: "before-components" }, hardwareSchedule: selection === "hardware-only" };
   else { p.contents.cuttingList.placement = "before-components"; p.numbering.scheme = "sequential"; p.numbering.startAt = 8; }
   const { document } = generate(p), pdf = await PDFDocument.load(await exportDrawingPDF(document));

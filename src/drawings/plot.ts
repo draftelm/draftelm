@@ -3,6 +3,8 @@ import { FORMAL_TEMPLATE_LABEL } from "./generate";
 import { titleBlockExtraHeight, titleBlockFields, viewportText, wrapDrawingText } from "./layout";
 import { modelToSheet, plotDimension } from "./dimensionPlot";
 import { plotDrawingAnnotations } from "./annotationPlot";
+import { assertGADocument } from "./planning/gaValidation";
+import { canonicalDrawingSnapshot } from "./planning/gaPlan";
 export { modelToSheet, plotDimension, formatDimension } from "./dimensionPlot";
 
 /** Both SVG and PDF consume these same paper-mm primitives. Text sizes/stroke
@@ -10,6 +12,9 @@ export { modelToSheet, plotDimension, formatDimension } from "./dimensionPlot";
  * Presentation defaults are not assertions of any BS/ISO clause compliance.
  */
 export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotEntity[] {
+  assertGADocument(document);
+  const boundSheet = document.sheets.find(s => s.id === sheet.id);
+  if (!boundSheet || (boundSheet !== sheet && canonicalDrawingSnapshot(boundSheet) !== canonicalDrawingSnapshot(sheet))) throw new Error("Drawing sheet does not belong to the bound plan/document. Regenerate the selected sheet.");
   const formal = document.template === "engineering";
   const extraHeight = titleBlockExtraHeight(sheet.metadata);
   const out: PlotEntity[] = [];
@@ -44,7 +49,7 @@ export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotE
     row(table.columns.map(c => wrapDrawingText(c.label, c.width - 4, table.fontSize)), table.headerHeight, true);
     for (const fragment of table.rows) row(fragment.cells, fragment.height, false);
   }
-  out.push(...plotDrawingAnnotations(document.drawingAnnotations, sheet));
+  out.push(...plotDrawingAnnotations(sheet.annotationModel ?? document.drawingAnnotations, sheet));
   sheet.annotations.flatMap(note => wrapDrawingText(note, sheet.widthMm - 26, 2.2)).forEach((note, i) => text(13, sheet.heightMm - 56 - extraHeight + i * 3, note, 2.2));
   const x = 10, y = sheet.heightMm - 47 - extraHeight, width = sheet.widthMm - 20;
   rect(x, y, width, 37 + extraHeight);

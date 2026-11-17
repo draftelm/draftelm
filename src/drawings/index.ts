@@ -6,4 +6,9 @@ export { reconcileDrawingParts } from "./reconcile";
 export { getDrawingProfile, parseDrawingProfile, DRAWING_PROFILE_CHOICES } from "./profiles";
 export { loadDrawingPreferences, saveDrawingPreferences, DRAWING_PREFERENCES_KEY } from "./preferences";
 export { createDrawingAnnotations, validateDrawingAnnotations } from "./annotations";
+export type * from "./planning/types";
+export { createGeneralAssemblyPlan, validateGeneralAssemblyPlan } from "./planning/gaPlan";
+export { validateGADocument } from "./planning/gaValidation";
+export type { AssemblyDrawingPlan, AssemblyDrawingGroup, DrawingAssemblyNode } from "./planning/assemblies";
+export { createAssemblyDrawingPlan, translateDrawingPanels } from "./planning/assemblies";
 // PDF is imported separately so browser preview does not eagerly load the exporter.

@@ -1,4 +1,5 @@
 import type { BOMLine, Vector3 } from "../furniture";
+import type { GADimensionId, GeneralAssemblyPlan } from "./planning/types";
 export interface Point2 { x: number; y: number }
 export interface Rect { x: number; y: number; width: number; height: number }
 export interface Bounds2 { min: Point2; max: Point2 }
@@ -6,21 +7,24 @@ export type Projection = "front" | "top" | "right" | "isometric";
 export type ProjectionConvention = "first-angle" | "third-angle";
 export type DrawingTemplate = "workshop" | "engineering";
 export type SheetFormat = "A4" | "A3" | "A2" | "A1";
+export type IsometricMode = "visible-edges" | "diagnostic-wireframe";
 export interface TitleBlockField { label: string; value: string }
 /** Presentation only. Reserved extension IDs are inert references, never markup or URLs. */
 export interface DrawingProfile {
-  schemaVersion: 2; id: string; name: string; template: DrawingTemplate;
-  sheet: { format: SheetFormat; projectionConvention: ProjectionConvention };
+  schemaVersion: 3; id: string; name: string; template: DrawingTemplate;
+  sheet: { format: SheetFormat; projectionConvention: ProjectionConvention; isometricMode?: IsometricMode };
   contents: {
     assemblyViews: Projection[]; componentDrawings: boolean;
     cuttingList: { include: boolean; placement: "before-components" | "after-components" };
     hardwareSchedule: boolean;
+    assemblySheets: { exploded: boolean; drawers: boolean; carcass: boolean };
   };
   titleBlock: { projectName: string; companyName?: string; additionalFields: TitleBlockField[] };
   numbering: { prefix: string; revision: string; scheme: "by-sheet-kind" | "sequential"; startAt: number };
   /** No profile can turn demonstration allowances into approved purchasing quantities. */
   hardwarePurchasing: "approved-only";
   annotations: { balloons: boolean; assemblyPartsList: boolean;
+    gaLevel: "panels" | "assemblies";
     balloonDisplay: "one-per-item" | "visible-occurrences"; itemNumberStyle: "numeric" | "prefixed" };
   extensions: {
     branding?: { logoAssetId?: string; borderTemplateId?: string; importedTemplateId?: string };
@@ -28,7 +32,11 @@ export interface DrawingProfile {
     machining?: { annotationProfileId?: string };
   };
 }
-export type DrawingProfileV1 = Omit<DrawingProfile, "schemaVersion" | "annotations"> & { schemaVersion: 1 };
+export type DrawingProfileV2 = Omit<DrawingProfile, "schemaVersion" | "contents" | "annotations"> & {
+  schemaVersion: 2; contents: Omit<DrawingProfile["contents"], "assemblySheets">;
+  annotations: Omit<DrawingProfile["annotations"], "gaLevel">;
+};
+export type DrawingProfileV1 = Omit<DrawingProfileV2, "schemaVersion" | "annotations"> & { schemaVersion: 1 };
 export interface ComponentReference { componentId: string; assemblyId: string; bomId?: string }
 export interface DrawingLine {
   kind: "line"; id: string; from: Point2; to: Point2;
@@ -37,6 +45,7 @@ export interface DrawingLine {
 export interface DrawingDimension {
   id: string; from: Point2; to: Point2; axis: "horizontal" | "vertical";
   valueMm: number; prefix?: string; offsetPaperMm: number; references: ComponentReference[];
+  semanticDimensionId?: GADimensionId;
 }
 export interface DrawingViewport {
   id: string; label: string; projection: Projection | "panel-face";
@@ -47,6 +56,10 @@ export interface DrawingViewport {
   annotations: string[]; references: ComponentReference[];
   /** Paper margin reserved for balloon rails; independent of model dimensions. */
   balloonMargin?: number;
+  semanticViewId?: string;
+  /** Presentation translations in engine millimetres; source panels stay immutable. */
+  presentationOffsets?: Record<string, Vector3>;
+  role?: "primary" | "supporting";
 }
 export interface SheetMetadata {
   projectName: string; subject: string; drawingNumber: string; revision: string;
@@ -60,6 +73,9 @@ export interface DrawingSheet {
   table?: DrawingTable;
   balloons?: PlacedComponentBalloon[];
   assemblyPartsList?: PlacedAssemblyPartsList;
+  annotationModel?: ScopedDrawingAnnotationModel;
+  assemblyScope?: { kind: "general" | "exploded" | "drawer" | "carcass"; assemblyIds: string[]; representativeId: string };
+  assemblyDiagnostics?: { code: "projected-overlap" | "concealed-panel"; componentIds: string[]; message: string }[];
 }
 /** Copies existing BOM data; lengths are nominal blanks, without cutting allowances. */
 export interface DrawingScheduleRow {
@@ -73,13 +89,22 @@ export interface DrawingAssemblyItem {
   componentIds: string[]; description: string; quantity: number; materialId: string;
   cuttingListBomId: string;
   references: ComponentReference[];
+  /** Scoped list reference text, derived from the source BOM and nominal blank. */
+  scopeDetails?: string;
 }
+/** A subassembly occurrence/group is never a manufactured panel or a BOM blank. */
+export interface DrawingAssemblyGroupItem extends Omit<DrawingAssemblyItem, "kind" | "bomId" | "materialId" | "cuttingListBomId"> {
+  kind: "assembly"; assemblyIds: string[]; bomIds: string[];
+}
+export type DrawingScopeItem = DrawingAssemblyItem | DrawingAssemblyGroupItem;
 export interface ComponentBalloonAnnotation {
   kind: "component-balloon"; id: string; itemKey: string;
-  componentIds: string[]; scope: "group-representative" | "occurrence";
+  componentIds: string[]; scope: "group-representative" | "occurrence" | "assembly-occurrence";
 }
 export interface DrawingAttachmentAnchor {
   kind: "panel-edge"; id: string; viewportId: string; sourceLineId: string;
+  /** Points are in the viewport's presentation scene; invert its recorded
+   * translation to recover engine coordinates. They are not machining anchors. */
   reference: ComponentReference; point: Vector3; edgeStart: Vector3; edgeEnd: Vector3;
   visibility: "verified-visible";
 }
@@ -87,7 +112,7 @@ export interface DrawingLeaderAnnotation {
   kind: "leader"; id: string; balloonId: string; anchorId: string;
 }
 export interface AssemblyPartsListAnnotation {
-  kind: "assembly-parts-list"; id: string; scope: "panels"; itemKeys: string[];
+  kind: "assembly-parts-list"; id: string; scope: "panels" | "assemblies" | "mixed"; itemKeys: string[];
 }
 export type DrawingSemanticAnnotation = ComponentBalloonAnnotation | DrawingLeaderAnnotation | AssemblyPartsListAnnotation;
 export interface DrawingAnnotationDiagnostic {
@@ -100,6 +125,10 @@ export interface DrawingAnnotationModel {
   anchors: DrawingAttachmentAnchor[]; leaders: DrawingLeaderAnnotation[];
   partsList: AssemblyPartsListAnnotation; diagnostics: DrawingAnnotationDiagnostic[];
 }
+export interface ScopedDrawingAnnotationModel extends Omit<DrawingAnnotationModel, "groupingPolicy" | "items"> {
+  groupingPolicy: "assembly-scope-v1"; scopeId: string; items: DrawingScopeItem[];
+}
+export type AnyDrawingAnnotationModel = DrawingAnnotationModel | ScopedDrawingAnnotationModel;
 /** Paper-space placements refer back to the semantic entities. */
 export interface PlacedComponentBalloon {
   annotationId: string; anchorId: string; leaderId: string; viewportId: string;
@@ -131,10 +160,13 @@ export interface DrawingDocument {
   componentSchedule: DrawingScheduleRow[]; cuttingList: DrawingScheduleRow[];
   reconciliation: DrawingReconciliation;
   drawingAnnotations: DrawingAnnotationModel;
+  gaPlan: GeneralAssemblyPlan;
+  assemblyPlan: import("./planning/assemblies").AssemblyDrawingPlan;
   profile: DrawingProfile;
   output: {
     assemblyViews: Projection[]; componentDrawings: boolean; cuttingList: boolean;
     hardwareSchedule: boolean; omittedSections: string[];
+    assemblySheets: DrawingProfile["contents"]["assemblySheets"];
   };
   hardware: {
     allowances: (DrawingScheduleRow & { verificationStatus: "unverified"; purchasingQuantity: 0; purchasingEligible: false })[];

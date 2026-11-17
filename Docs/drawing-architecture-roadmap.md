@@ -1,5 +1,7 @@
 # Drawing architecture audit and roadmap — Phase 5A
 
+**Phase 5B.2 implementation update:** [Assembly hierarchy, exploded views and reusable subassembly sheets](assembly-drawings.md) now implement the preliminary rectangular-panel assembly slice. They preserve the engineering source and false readiness/compliance; the complete manufacturing/release architecture below remains staged.
+
 **Status:** architecture/interface proposals only, dated 16 November 2026. The agreed behaviour and acceptance criteria are in [the manufacturing documentation specification](drawing-manufacturing-specification.md). Nothing below is an implemented release capability or standards claim. Proposed module names and code blocks are design contracts, not new source files or a commitment to final API spelling.
 
 ## 1. Repository audit: existing, extendable and new
@@ -489,6 +491,10 @@ An individual artifact from an approved frozen package may retain its original h
 | Legacy profile drift | New settings silently enable machining/annotation assumptions or overwrite saved preferences. | Explicit version adapters, old-profile fixtures, no automatic storage rewrite and preserved preliminary status. |
 
 ## 5. Recommended Phase 5B slice
+
+**Phase 5B.1 update:** [continuous solid-panel edge clipping](isometric-visibility.md) now provides clean isometric output for current engineering box panels. Arbitrary-solid hidden-line solving and sections remain future work; the Phase 5B.2 update above supplies rectangular-panel exploded/subassembly plans.
+
+**Implementation update (17 November 2026):** [Phase 5B](general-assembly-planning.md) implements this preliminary slice in `src/drawings/planning/` while retaining the existing generator. The audit/proposed interfaces above describe the Phase 5A baseline and future architecture, not all current executable contracts. Current output uses a dominant chest isometric, four source-bound semantic dimensions, profile-aware coverage diagnostics and validated shared SVG/PDF output. Unsupported families are rejected for a registered policy; hidden supporting dimensions remain reported unmet. No GA continuation capability was needed for the tested formats; parts-list AP continuation remains supported. The proposed full manufacturing baseline, datums/tolerances, variant registry, approval and package-manifest infrastructure remain deferred.
 
 **Implement one revision-bound chest GA planning slice: a dominant isometric view intent plus semantic records for the four existing nominal GA dimensions.** This connects the new architecture to visible behaviour without inventing manufacturing data or undertaking the entire roadmap.
 

@@ -1,5 +1,6 @@
 import type { PanelComponent, Vector3 } from "../furniture";
-import type { Bounds2, Bounds3, ComponentReference, DrawingLine, Point2, Projection } from "./types";
+import type { Bounds2, Bounds3, ComponentReference, DrawingLine, IsometricMode, Point2, Projection } from "./types";
+import { visibleIsometricEdges, VISIBILITY_EPSILON_MM } from "./edgeVisibility";
 
 export function bounds3(panels: PanelComponent[]): Bounds3 {
   if (!panels.length) throw new Error("Drawing requires physical panels.");
@@ -66,9 +67,47 @@ export function orthographicLines(panels: PanelComponent[], projection: Exclude<
   }
   return [...unique.values()];
 }
-export function isometricLines(panels: PanelComponent[]): DrawingLine[] {
+export function isometricWireframeLines(panels: PanelComponent[]): DrawingLine[] {
   return panels.flatMap(panel => {
     const corners = Array.from({ length: 8 }, (_, i) => projectPoint({ x: panel.position.x + (i & 1 ? panel.dimensions.x : 0), y: panel.position.y + (i & 2 ? panel.dimensions.y : 0), z: panel.position.z + (i & 4 ? panel.dimensions.z : 0) }, "isometric"));
     return corners.flatMap((p, i) => [1, 2, 4].filter(bit => !(i & bit)).map(bit => ({ kind: "line" as const, id: `iso:${panel.id}:${i}:${bit}`, from: p, to: corners[i | bit], references: [panelReference(panel)] })));
+  });
+}
+
+/** Opaque panel visibility, retaining seams and source membership. Collinear
+ * overlaps are split into intervals so hidden/coincident source IDs are not
+ * attributed to unrelated portions of a visible line. */
+export function isometricLines(panels: PanelComponent[], mode: IsometricMode = "visible-edges"): DrawingLine[] {
+  bounds3(panels);
+  if (mode === "diagnostic-wireframe") return isometricWireframeLines(panels);
+  const edges = visibleIsometricEdges(panels).map(e => {
+    const from = projectPoint(e.from, "isometric"), to = projectPoint(e.to, "isometric");
+    const basis = projectPoint({ x: e.axis === "x" ? 1 : 0, y: e.axis === "y" ? 1 : 0, z: e.axis === "z" ? 1 : 0 }, "isometric");
+    const length = Math.hypot(basis.x, basis.y), direction = { x: basis.x / length, y: basis.y / length };
+    return { from, to, panel: e.panel, axis: e.axis, direction, offset: direction.x * from.y - direction.y * from.x,
+      start: direction.x * from.x + direction.y * from.y, end: direction.x * to.x + direction.y * to.y };
+  }).sort((a, b) => a.axis < b.axis ? -1 : a.axis > b.axis ? 1 : a.offset - b.offset || a.start - b.start || a.end - b.end || (a.panel.id < b.panel.id ? -1 : a.panel.id > b.panel.id ? 1 : 0));
+  const groups: (typeof edges)[] = [];
+  for (const edge of edges) {
+    const group = groups[groups.length - 1];
+    if (group && group[0].axis === edge.axis && Math.abs(group[0].offset - edge.offset) <= VISIBILITY_EPSILON_MM) group.push(edge);
+    else groups.push([edge]);
+  }
+  return groups.flatMap((group, groupIndex) => {
+    const base = group[0], points = group.flatMap(e => [e.start, e.end]).sort((a, b) => a - b);
+    const cuts = points.filter((v, i) => i === 0 || v - points[i - 1] > VISIBILITY_EPSILON_MM);
+    const fragments: { start: number; end: number; references: ComponentReference[] }[] = [];
+    for (let i = 0; i < cuts.length - 1; i++) {
+      const start = cuts[i], end = cuts[i + 1], middle = (start + end) / 2;
+      if (end - start <= VISIBILITY_EPSILON_MM) continue;
+      const members = group.filter(e => e.start <= middle && e.end >= middle).map(e => e.panel);
+      const references = [...new Map(members.map(p => [p.id, panelReference(p)])).values()].sort((a, b) => a.componentId < b.componentId ? -1 : 1);
+      if (!references.length) continue;
+      const previous = fragments[fragments.length - 1];
+      if (previous && Math.abs(previous.end - start) <= VISIBILITY_EPSILON_MM && JSON.stringify(previous.references) === JSON.stringify(references)) previous.end = end;
+      else fragments.push({ start, end, references });
+    }
+    const at = (value: number) => ({ x: base.from.x + (value - base.start) * base.direction.x, y: base.from.y + (value - base.start) * base.direction.y });
+    return fragments.map((f, i) => ({ kind: "line" as const, id: `iso-visible:${groupIndex}:${i}`, from: at(f.start), to: at(f.end), references: f.references }));
   });
 }

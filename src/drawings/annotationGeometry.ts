@@ -2,6 +2,8 @@ import type { PanelComponent, Vector3 } from "../furniture";
 import type { DrawingViewport, PlotEntity, Point2, Projection, Rect } from "./types";
 import { projectPoint } from "./projections";
 import { modelToSheet } from "./dimensionPlot";
+import { panelEdges, pointIsVisible } from "./edgeVisibility";
+export { panelEdges } from "./edgeVisibility";
 
 export const BALLOON_STYLE = { radius: 3.5, textSize: 3, strokeWidth: 0.25, anchorRadius: 0.5, clearance: 0.7 };
 export const overlaps = (a: Rect, b: Rect, gap = 0) => a.x < b.x + b.width + gap && b.x < a.x + a.width + gap && a.y < b.y + b.height + gap && b.y < a.y + a.height + gap;
@@ -32,25 +34,10 @@ export function segmentHitsRect(a: Point2, b: Point2, rect: Rect, padding = 0.5)
   return inside(a) || inside(b) || corners.some((p, i) => segmentsIntersect(a, b, p, corners[(i + 1) % 4]));
 }
 
-export function panelEdges(panel: PanelComponent): { from: Vector3; to: Vector3 }[] {
-  const corners = Array.from({ length: 8 }, (_, i) => ({ x: panel.position.x + (i & 1 ? panel.dimensions.x : 0), y: panel.position.y + (i & 2 ? panel.dimensions.y : 0), z: panel.position.z + (i & 4 ? panel.dimensions.z : 0) }));
-  return corners.flatMap((from, i) => [1, 2, 4].filter(bit => !(i & bit)).map(bit => ({ from, to: corners[i | bit] })));
-}
-
 /** Ray toward the projection's camera. Open AABB interiors avoid treating face contact
  * as penetration. The epsilon is computational only, never a manufacturing allowance. */
 export function anchorIsVisible(point: Vector3, projection: Projection, panels: PanelComponent[]): boolean {
-  const direction = projection === "isometric" ? { x: 1, y: 1, z: -1 } : projection === "front" ? { x: 0, y: 0, z: -1 } : projection === "top" ? { x: 0, y: 1, z: 0 } : { x: 1, y: 0, z: 0 };
-  return !panels.some(panel => {
-    let enter = 1e-6, exit = Infinity;
-    for (const axis of ["x", "y", "z"] as const) {
-      const min = panel.position[axis] + 1e-6, max = panel.position[axis] + panel.dimensions[axis] - 1e-6, d = direction[axis];
-      if (d === 0) { if (point[axis] <= min || point[axis] >= max) return false; }
-      else { const a = (min - point[axis]) / d, b = (max - point[axis]) / d; enter = Math.max(enter, Math.min(a, b)); exit = Math.min(exit, Math.max(a, b)); }
-      if (enter >= exit) return false;
-    }
-    return exit > enter;
-  });
+  return pointIsVisible(point, projection, panels);
 }
 
 export function pointOnSegment(p: Point2, a: Point2, b: Point2, tolerance = 1e-6) {

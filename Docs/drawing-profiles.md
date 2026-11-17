@@ -1,6 +1,12 @@
 # Phase 4C.1 — configurable drawing profiles
 
+**Phase 5B.2 update:** [Exploded assembly and subassembly drawings](assembly-drawings.md) now add EA/DS/CS sheets, scoped assembly callouts and profile-v3 migration. Current built-in A3 defaults have nine sheets; the six-sheet/panel-callout descriptions below document the earlier presentation, retained by migrated v1/v2 profiles and legacy options. Geometry, all 29 panels, four GA dimensions and false release/compliance flags are preserved.
+
 The `/furniture` **Drawing Settings** panel configures the existing Phase 4B generator. Furniture Workshop remains the default six-sheet A3 package; Engineering selects the BS 8888 / ISO-style presentation with compliance explicitly unverified. Profiles change presentation and sheet inclusion only. Engine geometry, closed coordinates, quantities, BOM grouping, specification revisions and engineering approval evidence are unchanged.
+
+Phase 5B adds a [revision-bound GA plan and dominant-primary layout](general-assembly-planning.md) behind the same profile API. Profile schema v2 and local persistence/migration/reset remain unchanged. Hidden supporting views now report missing nominal GA dimension coverage; hidden data stays internally resolved and reconciled. Changing drawing inputs invalidates the plan and cancels any in-progress PDF download from the old document.
+
+Phase 5B.1 adds the optional `sheet.isometricMode` field (`visible-edges` by default when omitted, or `diagnostic-wireframe`). Existing v1/v2 profiles remain readable. Save/Load retains an explicit mode, Reset restores clean output, and Drawing diagnostics exposes the development toggle. See [visibility algorithm and limits](isometric-visibility.md).
 
 ## Profile contract and API
 

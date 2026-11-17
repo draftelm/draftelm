@@ -1,10 +1,12 @@
+import { itemReferenceText } from "./annotationItems";
 import type { FurnitureResult } from "../furniture";
-import type { DrawingAnnotationModel, DrawingProfile, DrawingSheet, DrawingViewport, PlacedComponentBalloon } from "./types";
+import type { AnyDrawingAnnotationModel, DrawingAnnotationModel, DrawingProfile, DrawingSheet, DrawingViewport, PlacedComponentBalloon } from "./types";
 import { reconcileDrawingParts } from "./reconcile";
 import { modelToSheet, plotDimension } from "./dimensionPlot";
 import { panelReference, projectPoint } from "./projections";
 import { viewportPadding } from "./layout";
 import { BALLOON_STYLE, anchorIsVisible, balloonBounds, containsRect, overlaps, panelEdges, pointOnSegment, primitiveBounds, segmentHitsRect, segmentsIntersect, visibleAnchorCandidates } from "./annotationGeometry";
+import { translateDrawingPanels } from "./planning/assemblies";
 
 const ordered = (ids: string[]) => [...ids].sort();
 const sameIds = (a: string[], b: string[]) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
@@ -27,7 +29,7 @@ export function createDrawingAnnotations(result: FurnitureResult, settings: Draw
 }
 
 /** Deterministic conservative rail placement. Failed placements remain explicit diagnostics. */
-export function placeComponentBalloons(model: DrawingAnnotationModel, result: FurnitureResult, views: DrawingViewport[], enabled: boolean): PlacedComponentBalloon[] {
+export function placeComponentBalloons(model: AnyDrawingAnnotationModel, result: FurnitureResult, views: DrawingViewport[], enabled: boolean): PlacedComponentBalloon[] {
   if (!enabled) return [];
   const panels = result.components.filter(c => c.kind === "panel"), placements: PlacedComponentBalloon[] = [];
   const priority = ["isometric", "front", "top", "right"];
@@ -35,6 +37,7 @@ export function placeComponentBalloons(model: DrawingAnnotationModel, result: Fu
   for (const balloon of model.balloons) {
     let placed = false, visible = false;
     for (const view of candidates) {
+      const displayed = translateDrawingPanels(panels.filter(p => view.references.some(r => r.componentId === p.id)), view.presentationOffsets ?? {});
       const pad = viewportPadding(view);
       const obstacles = view.dimensions.flatMap(d => plotDimension(view, d)).map(primitiveBounds);
       const slots = [];
@@ -42,8 +45,9 @@ export function placeComponentBalloons(model: DrawingAnnotationModel, result: Fu
         for (const x of [view.frame.x + 5, view.frame.x + view.frame.width - 5]) slots.push({ x, y });
       }
       for (const id of balloon.componentIds) {
-        const panel = panels.find(p => p.id === id)!;
-        for (const candidate of visibleAnchorCandidates(panel, view, panels)) {
+        const panel = displayed.find(p => p.id === id);
+        if (!panel) continue;
+        for (const candidate of visibleAnchorCandidates(panel, view, displayed)) {
           visible = true;
           const nearestSlots = [...slots].sort((a, b) => Math.hypot(a.x - candidate.paper.x, a.y - candidate.paper.y) - Math.hypot(b.x - candidate.paper.x, b.y - candidate.paper.y));
           for (const center of nearestSlots) {
@@ -53,9 +57,9 @@ export function placeComponentBalloons(model: DrawingAnnotationModel, result: Fu
             if (obstacles.some(obstacle => segmentHitsRect(start, candidate.paper, obstacle))) continue;
             if (placements.some(previous => overlaps(box, balloonBounds(previous.center), 0.7) || segmentHitsRect(start, candidate.paper, balloonBounds(previous.center)) ||
               segmentHitsRect(previous.leaderPoints[0], previous.leaderPoints[1], box) || segmentsIntersect(start, candidate.paper, previous.leaderPoints[0], previous.leaderPoints[1]))) continue;
-            const anchorId = `${balloon.id}-anchor`, leaderId = `${balloon.id}-leader`, item = model.items.find(i => i.key === balloon.itemKey)!;
+            const anchorId = `${balloon.id}-anchor`, leaderId = `${balloon.id}-leader`;
             model.anchors.push({ kind: "panel-edge", id: anchorId, viewportId: view.id, sourceLineId: candidate.sourceLineId,
-              reference: panelReference(panel, item.bomId), point: candidate.point, edgeStart: candidate.edge.from, edgeEnd: candidate.edge.to, visibility: "verified-visible" });
+              reference: panelReference(panel, result.bom.find(line => line.componentIds.includes(panel.id))!.id), point: candidate.point, edgeStart: candidate.edge.from, edgeEnd: candidate.edge.to, visibility: "verified-visible" });
             model.leaders.push({ kind: "leader", id: leaderId, balloonId: balloon.id, anchorId });
             placements.push({ annotationId: balloon.id, anchorId, leaderId, viewportId: view.id, center, leaderPoints: [start, candidate.paper] });
             placed = true; break;
@@ -90,30 +94,43 @@ export function validateDrawingAnnotations(result: FurnitureResult, model: Drawi
     const item = model.items.find(i => i.key === balloon.itemKey);
     if (!item || !balloon.componentIds.length || balloon.componentIds.some(id => !item.componentIds.includes(id)) || (balloon.scope === "group-representative" && !sameIds(balloon.componentIds, item.componentIds)) || (balloon.scope === "occurrence" && balloon.componentIds.length !== 1)) issues.push(`Invalid balloon-to-item relationship: ${balloon.id}.`);
   }
+  issues.push(...validateAnnotationPlacements(result, model, sheets.filter(s => !s.annotationModel)));
+  return issues;
+}
+
+/** Shared physical checks apply to closed and translated scoped scenes. */
+export function validateAnnotationPlacements(result: FurnitureResult, model: AnyDrawingAnnotationModel, sheets: DrawingSheet[]): string[] {
+  const issues: string[] = [], keys = new Set(model.items.map(i => i.key));
+  const panels = result.components.filter(c => c.kind === "panel");
   for (const collection of [model.balloons, model.anchors, model.leaders]) if (new Set(collection.map(entity => entity.id)).size !== collection.length) issues.push("Duplicate semantic annotation ID.");
   const views = sheets.flatMap(s => s.viewports);
   for (const anchor of model.anchors) {
-    const panel = panels.find(p => p.id === anchor.reference.componentId), view = views.find(v => v.id === anchor.viewportId);
+    const view = views.find(v => v.id === anchor.viewportId);
+    const displayed = translateDrawingPanels(panels.filter(p => view?.references.some(r => r.componentId === p.id)), view?.presentationOffsets ?? {});
+    const panel = displayed.find(p => p.id === anchor.reference.componentId);
     const validEdge = panel && panelEdges(panel).some(edge => JSON.stringify(edge.from) === JSON.stringify(anchor.edgeStart) && JSON.stringify(edge.to) === JSON.stringify(anchor.edgeEnd));
     const projected = view && view.projection !== "panel-face" ? projectPoint(anchor.point, view.projection) : null;
     const line = view?.entities.find(e => e.id === anchor.sourceLineId && e.references.some(r => r.componentId === panel?.id));
     const onEdge = validEdge && (["x", "y", "z"] as const).every(axis => anchor.point[axis] >= Math.min(anchor.edgeStart[axis], anchor.edgeEnd[axis]) - 1e-6 && anchor.point[axis] <= Math.max(anchor.edgeStart[axis], anchor.edgeEnd[axis]) + 1e-6);
-    if (!panel || !view || !line || !projected || !onEdge || anchor.reference.assemblyId !== panel.assemblyId || !pointOnSegment(projected, line.from, line.to) || !anchorIsVisible(anchor.point, view.projection as "front" | "top" | "right" | "isometric", panels)) issues.push(`Unreliable or detached balloon anchor: ${anchor.id}.`);
+    if (!panel || !view || !line || !projected || !onEdge || anchor.reference.assemblyId !== panel.assemblyId || !result.bom.some(b => b.id === anchor.reference.bomId && b.componentIds.includes(panel.id)) || !pointOnSegment(projected, line.from, line.to) || !anchorIsVisible(anchor.point, view.projection as "front" | "top" | "right" | "isometric", displayed)) issues.push(`Unreliable or detached balloon anchor: ${anchor.id}.`);
   }
   const allPlacements = sheets.flatMap(s => s.balloons ?? []);
   if (new Set(allPlacements.map(p => p.annotationId)).size !== allPlacements.length || model.anchors.length !== allPlacements.length || model.leaders.length !== allPlacements.length) issues.push("Duplicate or orphan balloon placements, leaders or anchors.");
   for (const sheet of sheets) for (const placement of sheet.balloons ?? []) {
     const balloon = model.balloons.find(b => b.id === placement.annotationId), anchor = model.anchors.find(a => a.id === placement.anchorId), view = views.find(v => v.id === placement.viewportId);
     const item = model.items.find(i => i.key === balloon?.itemKey), leader = model.leaders.find(l => l.id === placement.leaderId);
-    if (!balloon || !anchor || !view || !item || !balloon.componentIds.includes(anchor.reference.componentId) || anchor.reference.bomId !== item.bomId || !leader || leader.anchorId !== anchor.id || leader.balloonId !== balloon.id || anchor.viewportId !== view.id || placement.leaderPoints.length !== 2) { issues.push(`Invalid placed balloon/leader relationship: ${placement.annotationId}.`); continue; }
+    if (!balloon || !anchor || !view || !item || !balloon.componentIds.includes(anchor.reference.componentId) || (item.kind === "panel" ? anchor.reference.bomId !== item.bomId : !item.bomIds.includes(anchor.reference.bomId ?? "")) || !leader || leader.anchorId !== anchor.id || leader.balloonId !== balloon.id || anchor.viewportId !== view.id || placement.leaderPoints.length !== 2) { issues.push(`Invalid placed balloon/leader relationship: ${placement.annotationId}.`); continue; }
     const point = modelToSheet(view, projectPoint(anchor.point, view.projection as "front" | "top" | "right" | "isometric"));
     if (Math.hypot(point.x - placement.leaderPoints[1].x, point.y - placement.leaderPoints[1].y) > 1e-6 || !containsRect(view.frame, balloonBounds(placement.center))) issues.push(`Balloon placement is detached or outside its viewport: ${balloon.id}.`);
     const dimensions = view.dimensions.flatMap(d => plotDimension(view, d)).map(primitiveBounds);
     if (dimensions.some(box => overlaps(box, balloonBounds(placement.center), 0.7) || segmentHitsRect(placement.leaderPoints[0], placement.leaderPoints[1], box))) issues.push(`Balloon/leader overlaps a dimension: ${balloon.id}.`);
   }
-  for (let i = 0; i < allPlacements.length; i++) for (let j = i + 1; j < allPlacements.length; j++) {
-    const a = allPlacements[i], b = allPlacements[j];
+  for (const sheet of sheets) {
+  const placements = sheet.balloons ?? [];
+  for (let i = 0; i < placements.length; i++) for (let j = i + 1; j < placements.length; j++) {
+    const a = placements[i], b = placements[j];
     if (overlaps(balloonBounds(a.center), balloonBounds(b.center), 0.7) || segmentsIntersect(a.leaderPoints[0], a.leaderPoints[1], b.leaderPoints[0], b.leaderPoints[1])) issues.push("Balloon placements or leader paths overlap.");
+  }
   }
   const tables = sheets.flatMap(s => s.assemblyPartsList ? [s.assemblyPartsList] : []);
   if (tables.length) {
@@ -122,7 +139,7 @@ export function validateDrawingAnnotations(result: FurnitureResult, model: Drawi
     for (const item of model.items) {
       const rows = fragments.filter(row => row.itemKey === item.key);
       if (rows.filter(row => !row.continuation).length !== 1 || rows.some(row => row.cells[0][0] !== item.label) || rows.flatMap(row => row.cells[2]).join("") !== String(item.quantity) ||
-        compact(rows.flatMap(row => row.cells[1]).join("")) !== compact(item.description) || compact(rows.flatMap(row => row.cells[3]).join("")) !== compact(item.materialId)) issues.push(`Rendered assembly parts list disagrees with BOM item ${item.label}.`);
+        compact(rows.flatMap(row => row.cells[1]).join("")) !== compact(item.description) || compact(rows.flatMap(row => row.cells[3]).join("")) !== compact(itemReferenceText(item))) issues.push(`Rendered assembly parts list disagrees with BOM item ${item.label}.`);
     }
     if (fragments.some(row => !keys.has(row.itemKey))) issues.push("Rendered assembly parts list references an unknown item.");
     for (const sheet of sheets) if (sheet.assemblyPartsList) {

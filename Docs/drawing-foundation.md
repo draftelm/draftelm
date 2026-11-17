@@ -1,16 +1,22 @@
-# Phases 4A / 4B / 4C.1 — furniture drawing package
+# Furniture drawing package — through Phase 5B.2
+
+**Phase 5B.2 update:** [Exploded assembly and subassembly drawings](assembly-drawings.md) now add EA/DS/CS sheets, scoped assembly callouts and profile-v3 migration. Current built-in A3 defaults have nine sheets; the six-sheet/panel-callout descriptions below document the earlier presentation, retained by migrated v1/v2 profiles and legacy options. Geometry, all 29 panels, four GA dimensions and false release/compliance flags are preserved.
 
 The `/furniture` page provides a **2D drawings** section with a browser sheet preview and a complete vector PDF download. Phase 4B extends the Phase 4A foundation to every physical panel and adds a reconciled component schedule and nominal cutting list. The drawing module `src/drawings` is independent of React, Three.js and the UI. Its sole geometry input is the validated, closed `FurnitureResult`. Drawer opening, explosion, selection and visibility do not alter drawings. No furniture-engine formulas, BOM calculations, contact validation or approval logic were changed.
 
 Phase 4C.1 adds [versioned drawing profiles and local Drawing Settings](drawing-profiles.md) around this same generator. The six-sheet package below remains the Workshop default. Profiles can hide/reorder optional output, select sheet size/projections, and add company/title-block metadata without weakening internal reconciliation. Hardware schedules now explicitly distinguish demonstration allowances from approved purchasing items; none are approved in this phase.
 
-Phase 4C.2 adds [stable item numbers, visibility-checked balloons and a compact assembly parts list](drawing-annotations.md). Current Workshop/Engineering profile v2 defaults use those annotations; old profile v1 settings migrate with them off. The A3 GA reserves upper-right space for the seven panel items, with main/isometric scales of 1:20 for the reference chest. The historical 1:10 main-view layout described below remains available with the compact list off and through the legacy options API. Four concealed panel groups remain explicitly unballooned; all 29 panels remain listed. Small/overflowing layouts move the list to adjacent AP sheets.
+Phase 4C.2 adds [stable item numbers, visibility-checked balloons and a compact assembly parts list](drawing-annotations.md). Workshop/Engineering profile v2 defaults use those annotations; old profile v1 settings migrate with them off. Four concealed panel groups remain explicitly unballooned; all 29 panels remain listed. Small/overflowing layouts move the list to adjacent AP sheets.
+
+Phase 5B adds a [revision-bound semantic GA plan](general-assembly-planning.md). Current A3 defaults use a large **1:10 isometric primary**, with aligned **1:20 supporting orthographic views** and a compact list in the spare supporting-grid region. Both projection conventions, templates and legacy settings remain supported. Plan validation guards shared preview/PDF rendering, and input changes during asynchronous export cancel the stale download. Hidden supporting views report missing nominal GA dimension coverage. Earlier equal-cell layout/scales are superseded; geometry, component sheets and schedules remain unchanged.
+
+[Phase 5B.1](isometric-visibility.md) replaces the transparent isometric with analytic solid-panel edge clipping, shared by browser SVG and vector PDF. Clean edges are the default; Drawing diagnostics offers an explicitly labelled transparent wireframe. Visible drawer separations and panel seams remain, and balloon attachments are rechecked against clipped geometry.
 
 ## Generated sheets
 
 The initial UI format is **A3 landscape, 420 × 297 mm**:
 
-1. **DRF-CD-GA-001 — General assembly:** front, top and right-side orthographic views, plus a labelled parallel isometric wireframe illustration. The orthographic views share scale **1:10** for the reference model; the wireframe fits at **1:20**.
+1. **DRF-CD-GA-001 — General assembly:** large labelled hidden-line-removed parallel isometric primary at **1:10**, with front, top and right-side supporting orthographic views sharing **1:20** for the reference model.
 2. **DRF-CD-CP-001 — Carcass components:** face projections of the top/base blank (quantity 2, 900 × 500 × 18 mm), side blank (quantity 2, 814 × 500 × 18 mm), and recessed back (quantity 1, 864 × 814 × 6 mm).
 3. **DRF-CD-CP-002 — Panel components:** drawer bottoms (quantity 4, 838.6 × 400 × 6 mm), drawer sides (quantity 8, 400 × 124 × 12 mm), and box fronts/rears (quantity 8, 814.6 × 124 × 12 mm).
 4. **DRF-CD-CP-003 — Panel components:** all four decorative fronts (quantity 4, 896 × 209.25 × 18 mm).
@@ -34,14 +40,14 @@ The reference GA dimensions are **900 mm overall width, 850 mm overall height, 5
 
 Orthographic visible outlines are computed from axis-aligned panel face rectangles. Foreground face depth is min Z for front, max Y for top and max X for right side. Interval clipping removes edge fragments behind a nearer projected face; coincident fragments retain their component references. Coplanar panel seams may remain visible. This is an axis-aligned rectangular-panel visibility method, not a general B-rep hidden-line solver. It does not draw hidden machining/fastener geometry.
 
-The isometric viewport deliberately shows **all panel edges as wireframe** and is labelled **hidden edges not removed**. It is an explanatory projection, not an occlusion-correct isometric manufacturing view. This avoids presenting a perspective render or an approximate painter-sorted image as an engineering projection.
+The isometric viewport now uses **solid-panel hidden-line removal** for the current axis-aligned engineering boxes. It clips actual edges continuously against every opaque panel, retains visible component seams and uses a deterministic parallel camera. [Algorithm and limits](isometric-visibility.md) include numerical contact handling, supported solids and unresolved future geometry types. An optional diagnostic wireframe is explicitly labelled as including hidden edges.
 
 `generate.ts` applies first-/third-angle placement consistently without changing each named view's geometry:
 
 - Third-angle: top above front; right-side view to the right of front.
 - First-angle: top below front; right-side view to the left of front.
 
-Front/top share a horizontal model-to-paper alignment; front/right share a vertical alignment and plotted scale. Isometric sits in the remaining cell at its own declared scale. The chosen convention appears textually in the title block. A normative projection symbol is **not** asserted or invented.
+Front/top share a horizontal model-to-paper alignment; front/right share a vertical alignment and plotted scale. Phase 5B gives isometric its own large primary region; the supporting grid's spare cell can hold the compact list. The chosen convention appears textually in the title block. A normative projection symbol is **not** asserted or invented.
 
 Model-space entities remain in millimetres at **1:1 model coordinates**. Automatic fitting chooses a uniform reduction from a supported scale series (1:1, 1:2, 1:2.5, 1:5 and decimal reductions). The model-to-sheet mapping is paperX = originX + modelX × scale; paperY = originY − modelY × scale. There is no separate X/Y stretch, dimension rescaling or modification of the source parts. Numeric labels display up to six fractional digits, removing trailing zeros; underlying numeric values and coordinates are retained.
 
@@ -89,4 +95,4 @@ Phase 4B verification (16 November 2026): **199 tests passed** (the original 164
 
 Phase 4C.1 extends verification to **234 tests** plus Chrome interaction checks of the configured drawing UI, local preferences and PDF download. See [profile verification and limitations](drawing-profiles.md#regression-coverage). The default Turbopack port restriction remains; Webpack production builds pass.
 
-Phase 4B completes preliminary rectangular panel coverage and the nominal parts schedules. Sections, hidden-line isometrics, fixation/drilling geometry, supplier-specific hardware, material grades, edge treatments, grain decisions, nesting, tolerancing, manufacturing instructions/approval and authenticated document control remain outside this package. It is not a production release. **DXF/DWG, STEP and CNC export have not been implemented.** Resolve the known drawing/standards limitations before extending export formats or claiming compliance.
+Phase 4B completes preliminary rectangular panel coverage and the nominal parts schedules. Sections, arbitrary-solid hidden-line support, fixation/drilling geometry, supplier-specific hardware, material grades, edge treatments, grain decisions, nesting, tolerancing, manufacturing instructions/approval and authenticated document control remain outside this package. It is not a production release. **DXF/DWG, STEP and CNC export have not been implemented.** Resolve the known drawing/standards limitations before extending export formats or claiming compliance.

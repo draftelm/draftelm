@@ -12,11 +12,15 @@ Phase 3A adds independent drawer opening/closing and percentage sliders, with co
 
 Phase 3B adds Assembly and Individual Panels exploded views, with staged visual separation and independent explosion reset. Saved drawer openings return after reassembly; the engine geometry and BOM remain unchanged.
 
-The [Phase 4A / 4B drawing package](Docs/drawing-foundation.md) includes preliminary A3 general-assembly views, grouped details for all 29 panels, a complete component schedule and nominal cutting list, automatic BOM reconciliation, configurable projection placement, workshop/formal templates, and vector PDF export. The reference package has six sheets. The BS 8888 / ISO-style template targets BS 8888:2025 but its compliance is not yet verified against licensed standards. Manufacturing readiness remains false; DXF/DWG is outside this phase.
+The [Phase 4A / 4B drawing package](Docs/drawing-foundation.md) includes preliminary A3 general-assembly views, grouped details for all 29 panels, a complete component schedule and nominal cutting list, automatic BOM reconciliation, configurable projection placement, workshop/formal templates, and vector PDF export. The original reference package has six sheets; current Phase 5B.2 defaults have nine. The BS 8888 / ISO-style template targets BS 8888:2025 but its compliance is not yet verified against licensed standards. Manufacturing readiness remains false; DXF/DWG is outside this phase.
 
 [Phase 4C.1 drawing profiles](Docs/drawing-profiles.md) adds reusable Workshop/Engineering settings, live sheet inclusion and cutting-list placement, all supported sheet sizes, company/title-block metadata, configurable numbering and explicit local Save/Load/Reset. Hidden information stays internally reconciled. The reference 160 screws, eight brackets and eight individual runners remain unverified allowances, excluded from approved purchasing quantities.
 
 [Phase 4C.2 assembly annotations](Docs/drawing-annotations.md) adds deterministic panel item numbers, visible-edge balloons and a linked compact GA parts list, with AP-sheet overflow and profile-v2 migration. The default A3 chest has seven items covering all 29 panels, three reliable representative balloons and four explicitly concealed/unplaced groups. The original geometry/BOM and preliminary status remain unchanged.
+
+[Phase 5B GA planning](Docs/general-assembly-planning.md) adds revision-bound semantic dimensions, a large isometric primary with supporting orthographic views, stale-plan rejection and shared browser/vector-PDF validation. Reference values remain 900 × 850 mm, 500 mm carcass depth and 518 mm closed depth including fronts. That phase retained the six-sheet package, all 29 panel IDs, profile settings and unverified hardware exclusions.
+
+[Phase 5B.1 clean GA](Docs/isometric-visibility.md) removes hidden isometric edges against the existing solid panels while preserving visible drawer separations, BOM links and vector PDF output. An optional labelled diagnostic wireframe remains available in Drawing Settings.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
@@ -54,3 +58,5 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+[Phase 5B.2 assembly drawings](Docs/assembly-drawings.md) add a deterministic exploded cabinet sheet and reusable assembled/exploded drawer and carcass sheets. Default GA callouts identify carcass and drawer assemblies; scoped lists retain original panel/BOM links and quantities. Version 3 profiles include sheet switches and migrate older saved output safely. All 29 panels and engineering/BOM formulas remain unchanged; hidden/unplaced drawing items are reported explicitly.

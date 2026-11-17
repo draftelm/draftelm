@@ -1,11 +1,13 @@
 import { PDFDocument, StandardFonts, degrees, rgb } from "pdf-lib";
 import type { DrawingDocument } from "./types";
 import { plotSheet } from "./plot";
+import { assertGADocument } from "./planning/gaValidation";
 export const MM_TO_PT = 72 / 25.4;
 /** Built-in fonts have limited character coverage; geometry and numeric values are unaffected. */
 export const pdfText = (s: string) => s.replace(/[^\x20-\x7e\u00a0-\u00ff\u2013\u2014]/g, "?");
 
 export async function exportDrawingPDF(document: DrawingDocument): Promise<Uint8Array> {
+  assertGADocument(document);
   if (!document.sheets.length || document.manufacturingReady || document.complianceVerified || !document.reconciliation.valid) throw new Error("Only reconciled preliminary, unverified drawing documents can be exported.");
   const pdf = await PDFDocument.create();
   pdf.setTitle(`${document.sheets[0].metadata.projectName} - Preliminary furniture drawings`);

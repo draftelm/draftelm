@@ -38,8 +38,8 @@ test("GA dimensions distinguish 518 mm overall depth from the 500 mm carcass", (
   const { document } = reference();
   const dims = document.sheets[0].viewports.flatMap(v => v.dimensions);
   assert.deepEqual(dims.map(d => [d.id, d.valueMm]), [["overall-width", 900], ["overall-height", 850], ["carcass-depth", 500], ["overall-depth", 518]]);
-  assert.equal(document.sheets[0].viewports[0].scale, 0.1);
-  assert.equal(document.sheets[0].metadata.scale, "1:10 main; iso 1:20");
+  assert.equal(document.sheets[0].viewports[0].scale, 0.05);
+  assert.equal(document.sheets[0].metadata.scale, "iso 1:10 primary; 1:20 orthographic");
 });
 
 test("asymmetric coordinate markers preserve front, top and right orientation", () => {
@@ -58,7 +58,7 @@ test("isometric is linear, parallel and equally foreshortens all three axes", ()
     const q = projectPoint(p, "isometric"); near(Math.hypot(q.x, q.y), 100 * Math.sqrt(2 / 3));
     const doubled = projectPoint({ x: p.x * 2, y: p.y * 2, z: p.z * 2 }, "isometric"); near(doubled.x, q.x * 2); near(doubled.y, q.y * 2);
   }
-  const { result } = reference(); assert.equal(isometricLines(result.components.filter(c => c.kind === "panel")).length, 29 * 12);
+  const { result } = reference(); assert.equal(isometricLines(result.components.filter(c => c.kind === "panel"), "diagnostic-wireframe").length, 29 * 12);
 });
 
 for (const convention of ["first-angle", "third-angle"] as const) test(`${convention} named views are correctly placed and aligned without mirroring geometry`, () => {
@@ -166,7 +166,7 @@ test("vector PDF preserves every A3 sheet and exact plotted line coordinates wit
   const paths = [...content.matchAll(path)].map(m => m.slice(1).map(Number));
   const found = paths.find(p => Math.abs(p[0] - from.x) < 1e-5 && Math.abs(p[1] - from.y) < 1e-5 && Math.abs(p[2] - to.x) < 1e-5 && Math.abs(p[3] - to.y) < 1e-5);
   assert(found, "PDF content must include the actual dimension vector, not an embedded raster");
-  near(Math.abs(found[2] - found[0]), 90 * MM_TO_PT, 1e-5);
+  near(Math.abs(found[2] - found[0]), 900 * view.scale * MM_TO_PT, 1e-5);
 });
 
 test("overall depth extension lines originate on actual front and rear component corners", () => {
