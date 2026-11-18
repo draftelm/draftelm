@@ -61,9 +61,10 @@ export function parseDrawingProfile(value: unknown): { profile: DrawingProfile |
   if (!keys(s, ["format", "projectionConvention", "isometricMode"]) || !record(s) || !choice(s.format, ["A4", "A3", "A2", "A1"]) || !choice(s.projectionConvention, ["first-angle", "third-angle"]) ||
     (s.isometricMode !== undefined && !choice(s.isometricMode, ["visible-edges", "diagnostic-wireframe"]))) issues.push("Unsupported sheet size, projection or isometric mode.");
   const c = v.contents;
-  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule", ...(current ? ["assemblySheets", "functionalDimensions", "contextualSections", "functionalPresentation"] : [])]) || !record(c)) issues.push("Invalid drawing contents.");
+  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule", ...(current ? ["assemblySheets", "functionalDimensions", "contextualSections", "functionalPresentation", "panelManufacturing"] : [])]) || !record(c)) issues.push("Invalid drawing contents.");
   else {
     const assembly = c.assemblySheets;
+    if (c.panelManufacturing !== undefined && typeof c.panelManufacturing !== "boolean") issues.push("Manufacturing input binding must be boolean.");
     if (c.functionalPresentation !== undefined && !choice(c.functionalPresentation, ["contextual", "isolated-edges"])) issues.push("Unsupported functional dimension presentation.");
     if (c.contextualSections !== undefined && typeof c.contextualSections !== "boolean") issues.push("Contextual section visibility must be boolean.");
     if (c.functionalDimensions !== undefined && typeof c.functionalDimensions !== "boolean") issues.push("Functional dimension visibility must be boolean.");

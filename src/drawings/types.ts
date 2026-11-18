@@ -25,6 +25,8 @@ export interface DrawingProfile {
     contextualSections?: boolean;
     /** Absent saved profiles preserve isolated-edge output; current defaults use context. */
     functionalPresentation?: "contextual" | "isolated-edges";
+    /** Generated binding: a manufacturing input is required at render/export. */
+    panelManufacturing?: boolean;
   };
   titleBlock: { projectName: string; companyName?: string; additionalFields: TitleBlockField[] };
   numbering: { prefix: string; revision: string; scheme: "by-sheet-kind" | "sequential"; startAt: number };
@@ -80,6 +82,8 @@ export interface DrawingViewport {
   functionalContext?: import("./planning/functionalContextTypes").FunctionalContextViewportData;
   sectionData?: import("./planning/sectionTypes").SectionViewportData;
   sectionMarkers?: import("./planning/sectionTypes").SectionReferenceMarker[];
+  manufacturingComponentId?: string;
+  manufacturingInk?: PlotEntity[];
   referenceLabels?: { sourceId: string; text: string; at: Point2; references: ComponentReference[] }[];
 }
 export interface SheetMetadata {
@@ -92,6 +96,8 @@ export interface DrawingSheet {
   id: string; format: SheetFormat; widthMm: number; heightMm: number;
   metadata: SheetMetadata; viewports: DrawingViewport[]; annotations: string[];
   table?: DrawingTable;
+  manufacturingComponentId?: string;
+  manufacturingTable?: DrawingTable;
   balloons?: PlacedComponentBalloon[];
   assemblyPartsList?: PlacedAssemblyPartsList;
   annotationModel?: ScopedDrawingAnnotationModel;
@@ -191,6 +197,7 @@ export interface DrawingDocument {
   functionalContextPresentation: import("./planning/functionalContextTypes").FunctionalContextPresentation | null;
   contextualSectionPlan: import("./planning/sectionTypes").ContextualSectionPlan;
   sectionPresentation: import("./planning/sectionTypes").SectionPresentation | null;
+  manufacturing?: import("./manufacturing").ManufacturingDrawingBinding;
   profile: DrawingProfile;
   compositionReport: import("./composition").CompositionReport;
   output: {

@@ -554,3 +554,11 @@ Phase 5A recommends the boundaries and first slice; it does not settle those eng
 ## Implemented Phase 5C.2D slice
 
 [Professional drawing composition](professional-drawing-composition.md) adds physical-box explosion packing, geometry-relative balloon placement, annotated paper fitting, related functional-view composition, a shared semantic paper style with bounded company overrides, and source-bound composition diagnostics. The default A3 package remains 12 sheets, with front/D/E/F, C-C/I/J and A-A/B kept in their respective families. Geometry, BOM, revision protection and false readiness/compliance are preserved. Normative verification and general CAD capabilities remain deferred.
+
+## Implemented Phase 5D.1 slice
+
+[Panel manufacturing properties](panel-manufacturing-properties.md) adds a separate, source-bound data/validation layer for physical panel face/edge identities, signed local frames, material/grade and manufacturer codes, explicit good-face requirements, grain/matching, edge treatments and opposite-side finishes. Derived manufacturing variants and stock blank groups preserve occurrence/BOM links and isolate unknown requirements. Existing furniture geometry, BOM formulas, drawings and preliminary release/purchasing safeguards are unchanged. Evidence authentication, durable part registry, feature/process validation and drawing/schedule integration remain future work; the older increment table above is historical sequencing, not the implemented scope.
+
+## Implemented Phase 5D.2 slice
+
+[Visible manufacturing properties](visible-panel-manufacturing-properties.md) connects the separate manufacturing domain to the furniture workflow, guarded local draft storage, explicit geometry review, occurrence-specific reference drawings and one live/vector-PDF ten-field schedule dataset. Shared render/export validation pins this additional input and reconstructs MP/MN/MS output. Nominal CP drawings and their scales remain unchanged; source dimensions/BOM are not replaced by presentation values. Authenticated approval, finished-size engineering, advanced matching/process editing and company part registry remain deferred.

@@ -29,6 +29,7 @@ export async function exportDrawingPDF(document: DrawingDocument): Promise<Uint8
         page.drawEllipse({ x: entity.center.x * MM_TO_PT, y: y(entity.center.y), xScale: entity.radius * MM_TO_PT, yScale: entity.radius * MM_TO_PT,
           borderWidth: entity.width * MM_TO_PT, borderColor: ink, color: entity.filled ? ink : undefined });
       } else {
+        if (document.manufacturing && pdfText(entity.text) !== entity.text) throw new Error("Manufacturing PDF requires text supported by the current vector font. Unsupported characters remain unchanged in the browser; use supported text before export.");
         const font = entity.bold ? bold : regular, value = pdfText(entity.text), size = entity.size * MM_TO_PT;
         const advance = entity.align === "middle" ? font.widthOfTextAtSize(value, size) / 2 : 0;
         const angle = -(entity.rotation ?? 0) * Math.PI / 180;

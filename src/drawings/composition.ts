@@ -23,7 +23,7 @@ export function viewportInk(view: DrawingViewport): PlotEntity[] {
   const f = view.frame, { heading } = viewportText(view), notes = viewportNotes(view);
   return [
     ...view.entities.map(e => ({ kind: "line" as const, from: modelToSheet(view, e.from), to: modelToSheet(view, e.to), width: 0, role: "geometry" as const })),
-    ...view.dimensions.flatMap(d => plotDimension(view, d)), ...plotSectionMarkers(view),
+    ...view.dimensions.flatMap(d => plotDimension(view, d)), ...plotSectionMarkers(view), ...(view.manufacturingInk ?? []),
     ...heading.map((text, i) => ({ kind: "text" as const, text, at: { x: f.x + 3, y: f.y + 4 + i * 3.3 }, size: 2.6 })),
     ...notes.map((n, i) => ({ kind: "text" as const, text: n.text, at: { x: f.x + 3, y: f.y + f.height - 3 - (notes.length - 1 - i) * 2.8 }, size: 2 })),
     ...(view.referenceLabels ?? []).map(l => ({ kind: "text" as const, ...l, size: 2.5 })),

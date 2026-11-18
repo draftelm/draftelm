@@ -27,6 +27,10 @@ import { buildFunctionalContextSheets, functionalContextPresentation as presentF
 
 import { assessComposition } from "./composition";
 
+import { buildManufacturingPanelSheets, manufacturingScheduleTables } from "./manufacturing";
+import type { ManufacturingDrawingInput } from "./manufacturing";
+import { createManufacturingSchedule, resolvePanelManufacturing } from "../manufacturing";
+
 export const FORMAL_TEMPLATE_LABEL = "BS 8888 / ISO-style — compliance not yet verified";
 export const SHEET_FORMATS: Record<SheetFormat, { width: number; height: number }> = { A4: { width: 297, height: 210 }, A3: { width: 420, height: 297 }, A2: { width: 594, height: 420 }, A1: { width: 841, height: 594 } };
 export const DEFAULT_DRAWING_OPTIONS: DrawingOptions = { template: "workshop", projectionConvention: "third-angle", format: "A3", projectName: "DRAFTELM", drawingPrefix: "DRF-CD", revision: "A" };
@@ -42,11 +46,14 @@ function viewport(id: string, label: string, projection: Projection, panels: Pan
 }
 
 
-export function generateDrawingDocument(result: FurnitureResult, configuration: DrawingOptions | DrawingProfile | DrawingProfileV1 | DrawingProfileV2 = getDrawingProfile(), reusablePlan?: GeneralAssemblyPlan): DrawingResult {
+export function generateDrawingDocument(result: FurnitureResult, configuration: DrawingOptions | DrawingProfile | DrawingProfileV1 | DrawingProfileV2 = getDrawingProfile(), reusablePlan?: GeneralAssemblyPlan, manufacturingInput?: ManufacturingDrawingInput): DrawingResult {
   try {
     const parsed = parseDrawingProfile("schemaVersion" in configuration ? configuration : profileFromOptions(configuration));
     if (!parsed.profile) return { document: null, issues: parsed.issues };
     const profile = parsed.profile, contents = profile.contents;
+    if (manufacturingInput) contents.panelManufacturing = true;
+    if (contents.panelManufacturing && !manufacturingInput) throw new Error("Manufacturing properties are required by the drawing binding.");
+    const manufacturing = manufacturingInput ? { ...structuredClone(manufacturingInput), rows: createManufacturingSchedule(result, manufacturingInput.properties, resolvePanelManufacturing(result, manufacturingInput.properties)) } : undefined;
     const options: DrawingOptions = { template: profile.template, ...profile.sheet, projectName: profile.titleBlock.projectName,
       drawingPrefix: profile.numbering.prefix, revision: profile.numbering.revision };
     if (!result.geometryValid) throw new Error("Drawing withheld: engineering geometry is invalid.");
@@ -103,7 +110,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     if (!reconciliation.valid) return { document: null, issues: reconciliation.issues.map(issue => issue.message) };
     const columns = Math.max(1, Math.min(3, Math.floor((page.width - 20) / 125)));
     const chunks = contents.componentDrawings ? Array.from({ length: Math.ceil(componentViews.length / columns) }, (_, i) => componentViews.slice(i * columns, (i + 1) * columns)) : [];
-    const panelTables = contents.cuttingList.include ? paginateSchedule(cuttingList, layoutPage) : [];
+    const panelTables = contents.cuttingList.include ? manufacturing ? manufacturingScheduleTables(manufacturing.rows, layoutPage) : paginateSchedule(cuttingList, layoutPage) : [];
     const hardwareTables = contents.hardwareSchedule ? paginateSchedule(hardwareAllowances, layoutPage) : [];
     const assemblyViews = views.filter(view => contents.assemblyViews.includes(view.projection as Projection));
     const gaScale = [assemblyViews.some(v => v.projection === "isometric") ? `iso ${views[3].scaleLabel} primary` : "",
@@ -140,12 +147,12 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
       tables.forEach((table, index) => {
         const scheduleSheet = sheet(`${prefix}-${String(index + 1).padStart(3, "0")}`, subject, sheets.length + 1, []);
         scheduleSheet.table = table;
-        scheduleSheet.annotations = [prefix === "CL" ? "Nominal blanks only; no grain, edge treatment, cutting allowance or tolerance specified." : "UNVERIFIED demonstration allowances. Excluded from purchasing totals; no approved hardware quantities."];
+        scheduleSheet.annotations = [prefix === "MS" ? "P = provisional / unverified; V = supplied verification record only. No manufacturing or purchasing approval. Finished dimensions: Not specified." : prefix === "CL" ? "Nominal blanks only; no grain, edge treatment, cutting allowance or tolerance specified." : "UNVERIFIED demonstration allowances. Excluded from purchasing totals; no approved hardware quantities."];
         if (omittedSections.length) scheduleSheet.annotations.push("Configured subset; omitted sections remain internal.");
         sheets.push(scheduleSheet);
       });
     };
-    if (contents.cuttingList.placement === "before-components") addTables("CL", "Component schedule / nominal cutting list", panelTables);
+    if (contents.cuttingList.placement === "before-components") addTables(manufacturing ? "MS" : "CL", manufacturing ? "Panel manufacturing schedule - preliminary" : "Component schedule / nominal cutting list", panelTables);
     chunks.forEach((chunk, index) => {
       const fitted = chunk.map((v, i) => fitComponentDimensions({ ...v, frame: { x: 10 + i * (page.width - 20) / chunk.length, y: 28, width: (page.width - 20) / chunk.length, height: layoutPage.height - 100 } }));
       const carcassOnly = chunk.every(v => v.references.every(r => r.assemblyId === carcassAssembly.id));
@@ -154,7 +161,8 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
       componentSheet.annotations = [unplaced ? `Nominal blank dimensions: ${unplaced} placement diagnostics; see preview coverage. Thickness is normal to face.` : "Nominal blank dimensions; linked thickness is normal to face. No finished sizes or tolerances supplied."];
       sheets.push(componentSheet);
     });
-    if (contents.cuttingList.placement === "after-components") addTables("CL", "Component schedule / nominal cutting list", panelTables);
+    if (manufacturing) sheets.push(...buildManufacturingPanelSheets(result, componentDimensionPlan, profile, manufacturing, sheets, layoutPage, sheet));
+    if (contents.cuttingList.placement === "after-components") addTables(manufacturing ? "MS" : "CL", manufacturing ? "Panel manufacturing schedule - preliminary" : "Component schedule / nominal cutting list", panelTables);
     addTables("HW", "UNVERIFIED hardware allowances", hardwareTables);
     if (!sheets.length) return { document: null, issues: ["No supported sheets can be generated for the selected functional relationship scope."] };
     sheets.forEach((s, index) => {
@@ -166,10 +174,10 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     });
     const annotationIssues = validateDrawingAnnotations(result, drawingAnnotations, sheets);
     if (annotationIssues.length) return { document: null, issues: annotationIssues };
-    const dimensionCoverage = componentDimensionCoverage(componentDimensionPlan, sheets.flatMap(s => s.viewports).filter(v => v.projection === "panel-face"), contents.componentDrawings);
+    const dimensionCoverage = componentDimensionCoverage(componentDimensionPlan, sheets.flatMap(s => s.viewports).filter(v => v.projection === "panel-face" && !v.manufacturingComponentId), contents.componentDrawings);
     const functionalContextPresentation = presentFunctionalContext(functionalContextPlan, functionalDimensionPlan, sheets, !!contents.functionalDimensions);
     const functionalCoverage = functionalDimensionCoverage(functionalDimensionPlan, sheets, !!contents.functionalDimensions, functionalContextPresentation);
-    const document = { compositionReport: assessComposition(sheets), schemaVersion: 1 as const, specificationRevision: result.specificationRevision, template: options.template, projectionConvention: options.projectionConvention, standardsCandidate: "BS 8888:2025" as const, complianceVerified: false as const, manufacturingReady: false as const, sheets, componentSchedule, cuttingList, reconciliation, drawingAnnotations, gaPlan, assemblyPlan, componentDimensionPlan, componentDimensionCoverage: dimensionCoverage, functionalDimensionPlan, functionalDimensionCoverage: functionalCoverage, functionalContextPlan, functionalContextPresentation, contextualSectionPlan, sectionPresentation, profile,
+    const document = { ...(manufacturing ? { manufacturing } : {}), compositionReport: assessComposition(sheets), schemaVersion: 1 as const, specificationRevision: result.specificationRevision, template: options.template, projectionConvention: options.projectionConvention, standardsCandidate: "BS 8888:2025" as const, complianceVerified: false as const, manufacturingReady: false as const, sheets, componentSchedule, cuttingList, reconciliation, drawingAnnotations, gaPlan, assemblyPlan, componentDimensionPlan, componentDimensionCoverage: dimensionCoverage, functionalDimensionPlan, functionalDimensionCoverage: functionalCoverage, functionalContextPlan, functionalContextPresentation, contextualSectionPlan, sectionPresentation, profile,
       output: { assemblyViews: [...contents.assemblyViews], componentDrawings: contents.componentDrawings, cuttingList: contents.cuttingList.include, hardwareSchedule: contents.hardwareSchedule, assemblySheets: { ...contents.assemblySheets }, omittedSections },
       hardware: { allowances: hardwareAllowances, approvedPurchasingItems: [] as [], policy: "approved-only" as const } };
     const planIssues = validateGADocument(document);

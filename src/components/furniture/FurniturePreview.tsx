@@ -10,7 +10,7 @@ import FurnitureBOM from "./FurnitureBOM";
 import ViewerBoundary from "./ViewerBoundary";
 import DrawerControls from "./DrawerControls";
 import ExplosionControls from "./ExplosionControls";
-import DrawingPanel from "../drawings/DrawingPanel";
+import PanelManufacturingEditor from "./PanelManufacturingEditor";
 import type { ExplosionMode } from "./explosion";
 import { clampDemoTravel, clampOpening, DEFAULT_DEMO_TRAVEL_MM, drawerSelection, groupDrawerPanels, reconcileDrawerPositions, resetDrawerPositions, setDrawerOpening } from "./drawerMotion";
 import type { DrawerPositions } from "./drawerMotion";
@@ -121,7 +121,7 @@ export default function FurniturePreview() {
       <DrawerControls suspended={explosionAmount > 0 || explosionBusy} drawers={drawers} positions={positions} selectedIds={motionSelection.drawerIds} travelInput={travelInput} visible={visible} onSelect={selectDrawer} onOpening={(id, value) => setDrawerPositions(current => setDrawerOpening(drawers, current, id, value))} onTravel={setTravelInput} onReset={() => setDrawerPositions(resetDrawerPositions(drawers))} />
       {errors.length > 0 && <section role="alert" className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-5"><h2 className="font-medium text-red-200">Parameters need attention</h2><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-100">{errors.map((issue, i) => <li key={`${issue.code}-${i}`}>{issue.message}</li>)}</ul><p className="mt-3 text-sm text-red-100">The current preview and BOM are withheld. Adjust the values or reset the specification.</p></section>}
       <details className="mt-5 rounded-xl border border-white/10 p-4 text-sm"><summary className="cursor-pointer text-slate-300">Engineering assumptions & limitations ({assumptions.length})</summary><ul className="mt-3 list-disc space-y-2 pl-5 text-slate-400">{assumptions.map(issue => <li key={issue.code}>{issue.message}</li>)}</ul></details>
-      <DrawingPanel result={result} />
+      <PanelManufacturingEditor result={result} activeId={selection.activeId} onSelect={onSelect} />
       <FurnitureBOM result={result} selection={selection} onSelect={onSelect} />
     </div>
   );

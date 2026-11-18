@@ -71,3 +71,9 @@ Supported scope is reconciled opaque axis-aligned rectangular panel blanks and t
 Phase 5C.2B [sections and details](contextual-assembly-sections.md) add assembly relationships in surrounding solid geometry. Component nominal dimensions, grouped occurrence links and their layout/coverage are unchanged; REF assembly measurements are separate presentations of existing functional semantic IDs.
 
 Phase 5C.2C [contextual functional consolidation](contextual-functional-dimensions.md) preserves all 87 nominal component measurements while replacing the normal isolated-edge assembly presentation. Its grouped functional quantities and REF displays remain separate from component blank dimensions and BOM quantities.
+
+## Panel manufacturing property boundary
+
+Phase 5D.1 [manufacturing properties](panel-manufacturing-properties.md) adds physical face/edge identities and explicit local orientation independently of these drawing/display axes. Local U/V follow fixed physical axes rather than the displayed long/short edges. No grain/finish/treatment is inferred from the nominal component view. The sidecar does not replace current BOM grouping, any of the 87 component measurements, or existing component/drawing output.
+
+Phase 5D.2 [visible manufacturing properties](visible-panel-manufacturing-properties.md) preserves these CP views/scales and all 87 controlling measurements. Added MP views repeat the selected occurrence's existing measurements explicitly as REF, with actual local topology and property tables; they are excluded from controlling-dimension coverage rather than counted as new measurements. Grain/treatment symbols never change nominal geometry or blank sizes.

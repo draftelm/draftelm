@@ -12,6 +12,7 @@ import { validateFunctionalContextDocument } from "./functionalContextValidation
 import { validateContextualSectionDocument } from "./sectionValidation";
 import { validateFunctionalDimensionDocument } from "./functionalValidation";
 
+import { validateManufacturingDrawings } from "../manufacturing";
 import { validateCompositionReport } from "../composition";
 
 /** Validate frozen source/plan/presentation consistency at the shared render boundary.
@@ -26,6 +27,7 @@ export function validateGADocument(document: DrawingDocument): string[] {
     if (issues.length) return issues;
     issues.push(...validateCompositionReport(document));
     issues.push(...validateComponentDimensionDocument(document, source));
+    issues.push(...validateManufacturingDrawings(document, source));
     issues.push(...validateFunctionalDimensionDocument(document, source));
     issues.push(...validateContextualSectionDocument(document, source));
     issues.push(...validateFunctionalContextDocument(document, source));

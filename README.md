@@ -70,3 +70,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 [Phase 5C.2C contextual functional dimensions](Docs/contextual-functional-dimensions.md) replaces isolated-edge sheets in normal Workshop/Engineering defaults: D/E/F show closed front gaps/reveals, C-C/I/J show actual sectional side spaces, and A-A/B retain rear clearance/inset context. All 26 core requests have traceable contextual coverage; legacy FD output remains available as diagnostics and for older saved profiles.
 
 Phase 5C.2D: [professional engineering drawing composition](Docs/professional-drawing-composition.md) improves exploded panel packing, geometry-relative balloons, related functional sheets and shared SVG/PDF paper styles without changing geometry, BOM or preliminary status.
+
+Phase 5D.1: [panel manufacturing properties](Docs/panel-manufacturing-properties.md) adds source-bound local face/edge identities, explicit material/face/grain/edge/finish states and conservative manufacturing variants/stock groups. This is a data/validation foundation; the reference chest and drawing package remain unchanged and preliminary.
+
+Phase 5D.2: [visible panel manufacturing properties](Docs/visible-panel-manufacturing-properties.md) provides an occurrence editor, explicit bulk scope, local Save/Load and geometry review, an opt-in synthetic example, MP/MN panel maps and a ten-field live/PDF manufacturing schedule. The application reference A3 package is now 17 pages; original geometry, BOM, 87 dimensions and 26 functional relationships are unchanged and preliminary.

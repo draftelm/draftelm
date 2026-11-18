@@ -15,7 +15,7 @@ export function validateComponentDimensionDocument(document: DrawingDocument, so
   if (!plan) return ["Missing component dimension plan. Regenerate the drawing package."];
   const issues = validateComponentDimensionPlan(plan, source, document.profile);
   if (issues.length) return issues;
-  const views = document.sheets.flatMap(s => s.viewports).filter(v => v.projection === "panel-face");
+  const views = document.sheets.flatMap(s => s.viewports).filter(v => v.projection === "panel-face" && !v.manufacturingComponentId);
   if (document.profile.contents.componentDrawings) {
     issues.push(...reconcileDrawingParts(source, document.componentSchedule, views).issues.map(i => i.message));
     if (views.length !== plan.groups.length) issues.push("Component drawing type coverage is missing or duplicated.");

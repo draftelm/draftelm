@@ -189,3 +189,11 @@ This specification establishes a staged target, not a claim that any of these op
 ### Phase 5C.2C implementation note
 
 [Contextual functional dimensions](contextual-functional-dimensions.md) now provide preliminary contextual coverage for all 26 core requests, preserving source values and distinguishing actual rear space from its minimum intent. Normal built-in profiles use contextual FC/SC drawings instead of isolated FD sheets. This does not satisfy unimplemented feature, tolerance, inspection, hardware or manufacturing-release requirements.
+
+## Phase 5D.1 data foundation update
+
+[Panel manufacturing properties](panel-manufacturing-properties.md) now implements the bounded source-bound metadata/identity foundation supporting R05/R07/R10/R11: two broad faces/four perimeter edges per physical occurrence, explicit local orientation, unknown/provisional/verified property records, conservative derived variants and stock grouping, and stale/source/reference validation. It does not implement manufacturing drawings/schedules, finished-size deductions, validated processes or release authority. All production/demo manufacturing requirements remain unassigned; existing demo stocks remain provisional and manufacturing readiness remains false.
+
+## Phase 5D.2 visible property slice
+
+[Visible panel manufacturing properties](visible-panel-manufacturing-properties.md) implements a provisional occurrence editor, physical face/edge maps, directional grain/treatment symbols, property continuations and ten-field source-bound manufacturing schedules. The current application has a 17-page reference A3 package; legacy API calls without manufacturing input retain 12 pages. All 29 panel occurrences, 87 nominal measurements, 26 functional relationships, original BOM and false manufacturing/compliance/purchasing safeguards remain intact. Assigned property references are proposals, not approved materials/processes, calculated finished dimensions or manufacturing release data.
