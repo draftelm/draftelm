@@ -1,11 +1,12 @@
 import type { DrawingOptions, DrawingProfile } from "./types";
+import { STROKE_ROLES } from "./style";
 
 const workshop: DrawingProfile = {
   schemaVersion: 3, id: "furniture-workshop", name: "Furniture Workshop", template: "workshop",
   sheet: { format: "A3", projectionConvention: "third-angle" },
   contents: { assemblyViews: ["front", "top", "right", "isometric"], componentDrawings: true,
     cuttingList: { include: true, placement: "after-components" }, hardwareSchedule: true,
-    assemblySheets: { exploded: true, drawers: true, carcass: true }, functionalDimensions: true, contextualSections: true },
+    assemblySheets: { exploded: true, drawers: true, carcass: true }, functionalDimensions: true, contextualSections: true, functionalPresentation: "contextual" },
   titleBlock: { projectName: "DRAFTELM", additionalFields: [] },
   numbering: { prefix: "DRF-CD", revision: "A", scheme: "by-sheet-kind", startAt: 1 },
   hardwarePurchasing: "approved-only", extensions: {},
@@ -33,6 +34,7 @@ export function profileFromOptions(options: DrawingOptions): DrawingProfile {
   profile.contents.assemblySheets = { exploded: false, drawers: false, carcass: false };
   delete profile.contents.functionalDimensions;
   delete profile.contents.contextualSections;
+  delete profile.contents.functionalPresentation;
   return profile;
 }
 
@@ -47,10 +49,11 @@ export function parseDrawingProfile(value: unknown): { profile: DrawingProfile |
   const issues: string[] = [];
   const legacy = record(value) && value.schemaVersion === 1;
   const current = record(value) && value.schemaVersion === 3;
-  if (!keys(value, ["schemaVersion", "id", "name", "template", "sheet", "contents", "titleBlock", "numbering", "hardwarePurchasing", "extensions", ...(legacy ? [] : ["annotations"])])) {
+  if (!keys(value, ["schemaVersion", "id", "name", "template", "sheet", "contents", "titleBlock", "numbering", "hardwarePurchasing", "extensions", ...(current ? ["presentation"] : []), ...(legacy ? [] : ["annotations"])])) {
     return { profile: null, issues: ["Drawing profile must contain only supported configuration fields."] };
   }
   const v = value as Record<string, unknown>;
+  if (v.presentation !== undefined && (!keys(v.presentation, ["lineWeights"]) || !record(v.presentation) || (v.presentation.lineWeights !== undefined && (!keys(v.presentation.lineWeights, [...STROKE_ROLES]) || !record(v.presentation.lineWeights) || Object.values(v.presentation.lineWeights).some(w => typeof w !== "number" || !Number.isFinite(w) || w < 0.13 || w > 0.7))))) issues.push("Company line weights must use semantic roles and finite paper widths from 0.13 to 0.7 mm.");
   if (![1, 2, 3].includes(Number(v.schemaVersion)) || typeof v.schemaVersion !== "number") issues.push("Unsupported drawing profile version.");
   if (!token(v.id) || !text(v.name)) issues.push("Profile ID/name is invalid.");
   if (!choice(v.template, ["workshop", "engineering"])) issues.push("Unsupported drawing template.");
@@ -58,9 +61,10 @@ export function parseDrawingProfile(value: unknown): { profile: DrawingProfile |
   if (!keys(s, ["format", "projectionConvention", "isometricMode"]) || !record(s) || !choice(s.format, ["A4", "A3", "A2", "A1"]) || !choice(s.projectionConvention, ["first-angle", "third-angle"]) ||
     (s.isometricMode !== undefined && !choice(s.isometricMode, ["visible-edges", "diagnostic-wireframe"]))) issues.push("Unsupported sheet size, projection or isometric mode.");
   const c = v.contents;
-  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule", ...(current ? ["assemblySheets", "functionalDimensions", "contextualSections"] : [])]) || !record(c)) issues.push("Invalid drawing contents.");
+  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule", ...(current ? ["assemblySheets", "functionalDimensions", "contextualSections", "functionalPresentation"] : [])]) || !record(c)) issues.push("Invalid drawing contents.");
   else {
     const assembly = c.assemblySheets;
+    if (c.functionalPresentation !== undefined && !choice(c.functionalPresentation, ["contextual", "isolated-edges"])) issues.push("Unsupported functional dimension presentation.");
     if (c.contextualSections !== undefined && typeof c.contextualSections !== "boolean") issues.push("Contextual section visibility must be boolean.");
     if (c.functionalDimensions !== undefined && typeof c.functionalDimensions !== "boolean") issues.push("Functional dimension visibility must be boolean.");
     if (current && (!keys(assembly, ["exploded", "drawers", "carcass"]) || !record(assembly) || ["exploded", "drawers", "carcass"].some(k => typeof assembly[k] !== "boolean"))) issues.push("Invalid assembly-sheet settings.");

@@ -83,3 +83,11 @@ No logo rendering, imported drawing border, DWG/DXF upload/parser/export, suppli
 Verification on 16 November 2026: **234 tests passed** (199 existing tests plus 35 profile regressions), TypeScript and lint passed, and the production build passed with `npm run build -- --webpack`. The default Turbopack build was attempted, including an escalated retry, but its CSS worker could not bind a local port (`Operation not permitted`). No build configuration or dependency changes were made.
 
 Chrome checks passed against the hydrated production app using local build-artifact request interception, without a listening server. They exercised profile/template selection, sheet toggles and placement, A4/A3 preview updates, company metadata and numbering, Save/Reset/Load and persistence across reloads, a configured two-page PDF download, empty-output recovery, exact 160-screw presentation, viewer-explosion independence, corrupt-preference recovery and mobile overflow. Browser launch required execution permission; ordinary local-server startup remains restricted. These checks verify application behaviour, not standards or manufacturing approval.
+
+## Phase 5C.2C functional presentation
+
+Schema-3 profiles add optional `contents.functionalPresentation`: `contextual` for the current Workshop/Engineering defaults, or `isolated-edges` for diagnostic FD sheets. Omitted fields preserve older saved output and company selections; Reset adopts current defaults. Existing functional/section visibility settings still apply, with explicit missing coverage when hidden. [Contextual drawing rules and package layout](contextual-functional-dimensions.md) describe the new FC/SC organisation. No presentation setting confers engineering or purchasing approval.
+
+## Phase 5C.2D paper styles
+
+Schema-3 profiles optionally accept bounded semantic `presentation.lineWeights` overrides; omitted fields retain the template's defaults. Profile/preference migration and functional sheet selections remain unchanged. Both templates consume the same vector geometry and source measurements; Workshop/Engineering differ in visible outline weight. [Composition and standards-review notes](professional-drawing-composition.md) document the exact paper widths, diagnostics, company override example and verification gaps.

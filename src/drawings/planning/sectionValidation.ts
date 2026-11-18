@@ -34,7 +34,7 @@ export function validateContextualSectionDocument(document: DrawingDocument, sou
     if (expectedParent?.annotations[1] !== actual?.annotations[1]) issues.push("Assembly-to-section sheet reference differs from its target.");
   }
   for (const sheet of document.sheets) for (const view of sheet.viewports) {
-    if (!view.sectionData && (view.sectionMarkers?.length || view.entities.some(e => e.sectionRole))) issues.push(`Unbound section presentation: ${view.id}.`);
+    if (!view.sectionData && !view.functionalContext && (view.sectionMarkers?.length || view.entities.some(e => e.sectionRole))) issues.push(`Unbound section presentation: ${view.id}.`);
     for (const marker of view.sectionMarkers ?? []) if (!document.sheets.some(s => s.viewports.some(v => v.id === marker.targetViewId))) issues.push(`Section/detail reference has no target: ${marker.id}.`);
   }
   return issues;

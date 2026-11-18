@@ -74,7 +74,7 @@ export function clipSectionLine(line: DrawingLine, crop: Bounds2): DrawingLine |
   const lo = Math.max(Math.min(line.from[axis], line.to[axis]), crop.min[axis]), hi = Math.min(Math.max(line.from[axis], line.to[axis]), crop.max[axis]);
   return hi - lo > EPS ? { ...line, from: { ...line.from, [axis]: lo }, to: { ...line.to, [axis]: hi } } : null;
 }
-export function cropSectionGeometry(geometry: SectionGeometry, crop: Bounds2): Pick<SectionGeometry, "edges" | "cutFaces" | "bounds"> {
+export function cropSectionGeometry(geometry: Pick<SectionGeometry, "edges" | "cutFaces">, crop: Bounds2): Pick<SectionGeometry, "edges" | "cutFaces" | "bounds"> {
   if (!(crop.max.x > crop.min.x && crop.max.y > crop.min.y)) throw new Error("Invalid section detail crop.");
   return { bounds: crop, edges: geometry.edges.flatMap(line => { const clipped = clipSectionLine(line, crop); return clipped ? [clipped] : []; }),
     cutFaces: geometry.cutFaces.flatMap(face => {

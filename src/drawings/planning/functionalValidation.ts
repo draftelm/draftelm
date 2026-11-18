@@ -11,7 +11,7 @@ export function validateFunctionalDimensionDocument(document: DrawingDocument, r
   const plan = document.functionalDimensionPlan, issues = validateFunctionalDimensionPlan(plan, result, document.profile);
   if (issues.length) return issues;
   const enabled = !!document.profile.contents.functionalDimensions, sheets = document.sheets.filter(s => s.id.startsWith("FD-"));
-  const expectedGroups = enabled ? plan.displayGroups : [];
+  const expectedGroups = enabled && document.profile.contents.functionalPresentation !== "contextual" ? plan.displayGroups : [];
   const views = sheets.flatMap(s => s.viewports);
   const page = sheets[0], perPage = page ? functionalDetailFrames({ width: page.widthMm, height: page.heightMm - titleBlockExtraHeight(document.profile.titleBlock) }).length : 6;
   if (sheets.length !== Math.ceil(expectedGroups.length / perPage) || views.length !== expectedGroups.length || new Set(views.map(v => v.id)).size !== views.length) issues.push("Functional detail sheet/view coverage differs from the selected source policy.");
@@ -28,7 +28,7 @@ export function validateFunctionalDimensionDocument(document: DrawingDocument, r
     }
   }
   if (document.sheets.filter(s => !s.id.startsWith("FD-")).some(s => s.viewports.some(v => v.functionalDimension))) issues.push("Functional detail geometry is attached to an unexpected sheet scope.");
-  const coverage = functionalDimensionCoverage(plan, document.sheets, enabled);
+  const coverage = functionalDimensionCoverage(plan, document.sheets, enabled, document.functionalContextPresentation);
   if (canonicalDrawingSnapshot(coverage) !== canonicalDrawingSnapshot(document.functionalDimensionCoverage)) issues.push("Functional dimension coverage/placement diagnostics differ from the bound source.");
   return issues;
 }

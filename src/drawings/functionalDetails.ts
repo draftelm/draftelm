@@ -1,3 +1,4 @@
+import type { FunctionalContextPresentation } from "./planning/functionalContextTypes";
 import type { FurnitureResult } from "../furniture";
 import type { Bounds2, DrawingDimension, DrawingLine, DrawingProfile, DrawingSheet, DrawingViewport, Rect } from "./types";
 import type { FunctionalDimensionCoverage, FunctionalDimensionPlan, FunctionalDisplayGroup } from "./planning/functionalTypes";
@@ -104,7 +105,7 @@ export function functionalDetailFrames(page: { width: number; height: number }):
 
 export function functionalDetailSheets(result: FurnitureResult, profile: DrawingProfile, plan: FunctionalDimensionPlan, page: { width: number; height: number },
   makeSheet: (id: string, subject: string, number: number, views: DrawingViewport[]) => DrawingSheet): DrawingSheet[] {
-  if (!profile.contents.functionalDimensions) return [];
+  if (!profile.contents.functionalDimensions || profile.contents.functionalPresentation === "contextual") return [];
   const frames = functionalDetailFrames(page), perPage = frames.length;
   return Array.from({ length: Math.ceil(plan.displayGroups.length / perPage) }, (_, pageIndex) => {
     const views = plan.displayGroups.slice(pageIndex * perPage, (pageIndex + 1) * perPage).map((group, i) => functionalDetailView(result, plan, group, frames[i]));
@@ -114,11 +115,11 @@ export function functionalDetailSheets(result: FurnitureResult, profile: Drawing
   });
 }
 
-export function functionalDimensionCoverage(plan: FunctionalDimensionPlan, sheets: DrawingSheet[], enabled: boolean): FunctionalDimensionCoverage {
+export function functionalDimensionCoverage(plan: FunctionalDimensionPlan, sheets: DrawingSheet[], enabled: boolean, contextual?: FunctionalContextPresentation | null): FunctionalDimensionCoverage {
   const views = sheets.flatMap(s => s.viewports).filter(v => v.functionalDimension);
-  const displayed = new Set(views.filter(v => v.functionalDimension!.status === "placed").flatMap(v => v.functionalDimension!.requestIds));
-  const required = plan.requests.filter(r => r.required), unsupported = required.filter(r => r.state === "unsupported").map(r => r.id);
-  const unplaced = required.filter(r => r.state === "resolved" && !displayed.has(r.id)).map(r => r.id);
+  const displayed = new Set(contextual ? contextual.assignments.filter(a => a.state === "placed").map(a => a.requestId) : views.filter(v => v.functionalDimension!.status === "placed").flatMap(v => v.functionalDimension!.requestIds));
+  const required = plan.requests.filter(r => r.required), unsupported = required.filter(r => r.state === "unsupported" || contextual?.assignments.some(a => a.requestId === r.id && a.state === "unsupported")).map(r => r.id);
+  const unplaced = required.filter(r => r.state === "resolved" && !unsupported.includes(r.id) && !displayed.has(r.id)).map(r => r.id);
   return { requiredRequestIds: required.map(r => r.id), displayedRequestIds: required.filter(r => displayed.has(r.id)).map(r => r.id), unplacedRequestIds: unplaced,
     unsupportedRequestIds: unsupported, deferredRequestIds: plan.requests.filter(r => !r.required).map(r => r.id),
     diagnostics: [

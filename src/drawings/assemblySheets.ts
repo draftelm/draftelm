@@ -8,6 +8,7 @@ import { positionViewport } from "./generate";
 import { createScopedAnnotations } from "./assemblyAnnotations";
 import { placeComponentBalloons } from "./annotations";
 import { paginateAssemblyPartsList } from "./assemblyPartsList";
+import { drawingRegion } from "./layout";
 
 export interface AssemblyScene {
   id: string; scope: NonNullable<DrawingSheet["assemblyScope"]>; subject: string;
@@ -18,7 +19,7 @@ export interface AssemblyScene {
 export function assemblyVisibilityDiagnostics(scene: AssemblyScene, view: DrawingViewport): NonNullable<DrawingSheet["assemblyDiagnostics"]> {
   return [
     ...scene.explosion.unresolvedPairs.map(ids => ({ code: "projected-overlap" as const, componentIds: ids, message: `Projected panel silhouettes still overlap: ${ids.join(", ")}.` })),
-    ...scene.panels.filter(p => !view.entities.some(e => e.references.some(r => r.componentId === p.id))).map(p => ({ code: "concealed-panel" as const, componentIds: [p.id], message: `No exposed edge in exploded view: ${p.id}; retained in scoped list.` })),
+    ...scene.panels.filter(p => !view.entities.some(e => e.references.some(r => r.componentId === p.id))).map(p => ({ code: "concealed-panel" as const, componentIds: [p.id], message: `No exposed edge in exploded view: ${p.id}; retained in scoped list.${scene.scope.kind === "exploded" ? " Concealed within a rigid drawer group; separated panels are shown on the drawer subassembly sheet when included." : ""}` })),
   ];
 }
 
@@ -49,7 +50,7 @@ export function buildAssemblySheets(result: FurnitureResult, profile: DrawingPro
   const output: DrawingSheet[] = [];
   for (const scene of createAssemblyScenes(result, plan)) {
     const model = createScopedAnnotations(result, plan, scene.scope, profile.annotations);
-    const availableHeight = page.height - 87, listWidth = Math.min(168, (page.width - 28) * 0.44);
+    const body = drawingRegion(page), availableHeight = body.height, listWidth = Math.min(page.width >= 700 ? 168 : 154, (page.width - 28) * 0.44);
     const tables = profile.annotations.assemblyPartsList ? paginateAssemblyPartsList(model, listWidth, availableHeight) : [];
     const viewWidth = page.width - 20 - (tables.length === 1 ? listWidth + 6 : 0);
     const frame = { x: 10, y: 23, width: viewWidth, height: availableHeight };
@@ -62,10 +63,27 @@ export function buildAssemblySheets(result: FurnitureResult, profile: DrawingPro
         origin: { x: 0, y: 0 }, scale: 1, scaleLabel: "1:1", annotations: [], balloonMargin: profile.annotations.balloons ? 16 : undefined,
         references: scene.panels.map(p => panelReference(p, result.bom.find(l => l.componentIds.includes(p.id))!.id)), presentationOffsets: offsets });
     };
-    const views = scene.scope.kind === "exploded" ? [makeView(true, frame)] : [
-      makeView(false, { ...frame, height: availableHeight * 0.34 }),
-      makeView(true, { ...frame, y: frame.y + availableHeight * 0.34, height: availableHeight * 0.66 }),
-    ];
+    const candidates: DrawingViewport[][] = [];
+    if (scene.scope.kind === "exploded") candidates.push([makeView(true, frame)]);
+    else {
+      for (const fraction of [0.4, 0.45, 0.5, 0.55, 0.6]) {
+        const h = availableHeight * fraction;
+        candidates.push([makeView(false, { ...frame, height: h }), makeView(true, { ...frame, y: frame.y + h, height: availableHeight - h })]);
+        if (tables.length === 1) {
+          const table = tables[0], used = table.titleHeight + table.headerHeight + table.rows.reduce((sum, row) => sum + row.height, 0);
+          if (h >= used + 6) candidates.push([makeView(false, { ...frame, height: h }), makeView(true, { ...body, y: body.y + h, height: availableHeight - h })]);
+          if (page.width < 700 && availableHeight - used - 6 > 50) {
+            const right = { x: page.width - 10 - listWidth, y: body.y + used + 6, width: listWidth, height: availableHeight - used - 6 };
+            candidates.push([makeView(false, frame), makeView(true, right)], [makeView(false, right), makeView(true, frame)]);
+          }
+        }
+      }
+    }
+    const area = (v: DrawingViewport) => (v.bounds.max.x - v.bounds.min.x) * (v.bounds.max.y - v.bounds.min.y) * v.scale ** 2;
+    // Reward both views, rather than sacrificing the assembled context for a
+    // large exploded illustration. Text and balloon sizes never enter model scale.
+    const score = (vs: DrawingViewport[]) => (vs.reduce((sum, v) => sum + area(v), 0) + (vs.length > 1 ? Math.min(...vs.map(area)) * 2 : 0)) * (vs.length > 1 && vs[0].scale > vs[1].scale * 2 ? 0.5 : 1);
+    const views = candidates.sort((a, b) => score(b) - score(a))[0];
     const sheet = makeSheet(scene.id, scene.subject, 0, views);
     sheet.assemblyScope = scene.scope; sheet.annotationModel = model;
     // Prefer the exploded view for leaf attachments; assembled view is a context inset.
@@ -79,6 +97,7 @@ export function buildAssemblySheets(result: FurnitureResult, profile: DrawingPro
     if (profile.annotations.assemblyPartsList) {
       if (tables.length === 1) {
         sheet.assemblyPartsList = tables[0]; tables[0].frame.x = page.width - 10 - listWidth;
+        tables[0].frame.height = tables[0].titleHeight + tables[0].headerHeight + tables[0].rows.reduce((sum, row) => sum + row.height, 0);
       } else {
         // Use full-width continuation pages rather than reducing table lettering.
         const continuations = paginateAssemblyPartsList(model, page.width - 20, availableHeight);

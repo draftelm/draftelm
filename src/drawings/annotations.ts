@@ -1,12 +1,13 @@
 import { itemReferenceText } from "./annotationItems";
 import type { FurnitureResult } from "../furniture";
-import type { AnyDrawingAnnotationModel, DrawingAnnotationModel, DrawingProfile, DrawingSheet, DrawingViewport, PlacedComponentBalloon } from "./types";
+import type { AnyDrawingAnnotationModel, DrawingAnnotationModel, DrawingProfile, DrawingSheet, DrawingViewport, PlacedComponentBalloon, Point2 } from "./types";
 import { reconcileDrawingParts } from "./reconcile";
 import { modelToSheet, plotDimension } from "./dimensionPlot";
 import { panelReference, projectPoint } from "./projections";
 import { viewportPadding } from "./layout";
 import { BALLOON_STYLE, anchorIsVisible, balloonBounds, containsRect, overlaps, panelEdges, pointOnSegment, primitiveBounds, segmentHitsRect, segmentsIntersect, visibleAnchorCandidates } from "./annotationGeometry";
 import { translateDrawingPanels } from "./planning/assemblies";
+import { insideConvexHull, panelPaperSilhouette } from "./annotationGeometry";
 
 const ordered = (ids: string[]) => [...ids].sort();
 const sameIds = (a: string[], b: string[]) => JSON.stringify(ordered(a)) === JSON.stringify(ordered(b));
@@ -39,22 +40,33 @@ export function placeComponentBalloons(model: AnyDrawingAnnotationModel, result:
     for (const view of candidates) {
       const displayed = translateDrawingPanels(panels.filter(p => view.references.some(r => r.componentId === p.id)), view.presentationOffsets ?? {});
       const pad = viewportPadding(view);
+      const silhouettes = displayed.map(p => panelPaperSilhouette(p, view));
       const obstacles = view.dimensions.flatMap(d => plotDimension(view, d)).map(primitiveBounds);
-      const slots = [];
-      for (let y = view.frame.y + pad.top + 5; y <= view.frame.y + view.frame.height - pad.bottom - 5; y += 9.5) {
-        for (const x of [view.frame.x + 5, view.frame.x + view.frame.width - 5]) slots.push({ x, y });
+      const lo = modelToSheet(view, view.bounds.min), hi = modelToSheet(view, view.bounds.max);
+      const geometry = view.entities.map(e => ({ from: modelToSheet(view, e.from), to: modelToSheet(view, e.to) }));
+      const left = view.frame.x + 7, right = view.frame.x + view.frame.width - 7;
+      const top = view.frame.y + pad.top + 5, bottom = view.frame.y + view.frame.height - pad.bottom - 5;
+      const clamp = (p: Point2) => ({ x: Math.max(left, Math.min(right, p.x)), y: Math.max(top, Math.min(bottom, p.y)) });
+      const slots: Point2[] = [];
+      for (let y = Math.max(top, hi.y - 9); y <= Math.min(bottom, lo.y + 9); y += 9.5) {
+        for (const x of [lo.x - 10, hi.x + 10]) slots.push(clamp({ x, y }));
+      }
+      for (let x = Math.max(left, lo.x - 9); x <= Math.min(right, hi.x + 9); x += 9.5) {
+        for (const y of [hi.y - 10, lo.y + 10]) slots.push(clamp({ x, y }));
       }
       for (const id of balloon.componentIds) {
         const panel = displayed.find(p => p.id === id);
         if (!panel) continue;
         for (const candidate of visibleAnchorCandidates(panel, view, displayed)) {
           visible = true;
-          const nearestSlots = [...slots].sort((a, b) => Math.hypot(a.x - candidate.paper.x, a.y - candidate.paper.y) - Math.hypot(b.x - candidate.paper.x, b.y - candidate.paper.y));
+          const local = [10, 14, 19].flatMap(radius => Array.from({ length: 12 }, (_, i) => clamp({ x: candidate.paper.x + Math.cos(i * Math.PI / 6) * radius, y: candidate.paper.y + Math.sin(i * Math.PI / 6) * radius })));
+          const nearestSlots = [...local, ...slots].sort((a, b) => Math.abs(Math.hypot(a.x - candidate.paper.x, a.y - candidate.paper.y) - 12) - Math.abs(Math.hypot(b.x - candidate.paper.x, b.y - candidate.paper.y) - 12));
           for (const center of nearestSlots) {
             const box = balloonBounds(center), distance = Math.hypot(candidate.paper.x - center.x, candidate.paper.y - center.y);
-            if (distance <= BALLOON_STYLE.radius + 2 || !containsRect(view.frame, box) || obstacles.some(obstacle => overlaps(box, obstacle, 0.7))) continue;
+            if (distance <= BALLOON_STYLE.radius + 2 || distance > 40 || !containsRect(view.frame, box) || obstacles.some(obstacle => overlaps(box, obstacle, 0.7)) || geometry.some(e => segmentHitsRect(e.from, e.to, box, 0.7)) || silhouettes.some(h => insideConvexHull(center, h))) continue;
             const start = { x: center.x + (candidate.paper.x - center.x) / distance * BALLOON_STYLE.radius, y: center.y + (candidate.paper.y - center.y) / distance * BALLOON_STYLE.radius };
-            if (obstacles.some(obstacle => segmentHitsRect(start, candidate.paper, obstacle))) continue;
+            const nearAnchor = { x: candidate.paper.x + (start.x - candidate.paper.x) / distance * 0.8, y: candidate.paper.y + (start.y - candidate.paper.y) / distance * 0.8 };
+            if (obstacles.some(obstacle => segmentHitsRect(start, candidate.paper, obstacle)) || geometry.some(e => segmentsIntersect(start, nearAnchor, e.from, e.to))) continue;
             if (placements.some(previous => overlaps(box, balloonBounds(previous.center), 0.7) || segmentHitsRect(start, candidate.paper, balloonBounds(previous.center)) ||
               segmentHitsRect(previous.leaderPoints[0], previous.leaderPoints[1], box) || segmentsIntersect(start, candidate.paper, previous.leaderPoints[0], previous.leaderPoints[1]))) continue;
             const anchorId = `${balloon.id}-anchor`, leaderId = `${balloon.id}-leader`;

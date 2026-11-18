@@ -69,3 +69,5 @@ Supported scope is reconciled opaque axis-aligned rectangular panel blanks and t
 ## Contextual assembly presentation
 
 Phase 5C.2B [sections and details](contextual-assembly-sections.md) add assembly relationships in surrounding solid geometry. Component nominal dimensions, grouped occurrence links and their layout/coverage are unchanged; REF assembly measurements are separate presentations of existing functional semantic IDs.
+
+Phase 5C.2C [contextual functional consolidation](contextual-functional-dimensions.md) preserves all 87 nominal component measurements while replacing the normal isolated-edge assembly presentation. Its grouped functional quantities and REF displays remain separate from component blank dimensions and BOM quantities.

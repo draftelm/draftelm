@@ -2,6 +2,7 @@ import type { DrawingViewport, PlotEntity, Point2 } from "./types";
 import type { SectionCutFace } from "./planning/sectionTypes";
 import { modelToSheet } from "./dimensionPlot";
 import { VISIBILITY_EPSILON_MM as EPS } from "./edgeVisibility";
+import { DRAWING_TEXT } from "./style";
 
 /** Greedy adjacency colouring keeps touching cut panels distinguishable. Patterns
  * indicate separate cut occurrences, never material layers or machining detail. */
@@ -23,7 +24,7 @@ export function sectionHatchPatterns(faces: SectionCutFace[]): Map<string, numbe
  * Each vector segment is analytically clipped to one actual cut-face rectangle. */
 export function plotSectionHatches(view: DrawingViewport, fullFaces: SectionCutFace[]): PlotEntity[] {
   const patterns = sectionHatchPatterns(fullFaces), out: PlotEntity[] = [];
-  for (const face of view.sectionData?.cutFaces ?? []) {
+  for (const face of view.sectionData?.cutFaces ?? view.functionalContext?.cutFaces ?? []) {
     const a = modelToSheet(view, face.bounds.min), b = modelToSheet(view, face.bounds.max);
     const min = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y) }, max = { x: Math.max(a.x, b.x), y: Math.max(a.y, b.y) };
     const colour = patterns.get(face.id) ?? 0, slope = [1, -1, 0.577350269, -0.577350269][colour % 4], step = (2.5 + Math.floor(colour / 4) * 0.6) * Math.sqrt(1 + slope * slope);
@@ -40,11 +41,8 @@ export function plotSectionHatches(view: DrawingViewport, fullFaces: SectionCutF
 }
 export function plotSectionMarkers(view: DrawingViewport): PlotEntity[] {
   const out: PlotEntity[] = [], references = view.references;
-  const line = (a: Point2, b: Point2, sourceId: string, width = 0.18) => out.push({ kind: "line", from: a, to: b, width, role: "annotation", sourceId, references });
-  const dashed = (a: Point2, b: Point2, sourceId: string) => {
-    const length = Math.hypot(b.x - a.x, b.y - a.y);
-    for (let t = 0; t < length; t += 4) { const end = Math.min(length, t + 2.5); line({ x: a.x + (b.x - a.x) * t / length, y: a.y + (b.y - a.y) * t / length }, { x: a.x + (b.x - a.x) * end / length, y: a.y + (b.y - a.y) * end / length }, sourceId); }
-  };
+  const line = (a: Point2, b: Point2, sourceId: string, width = 0.18) => out.push({ kind: "line", from: a, to: b, width, role: "annotation", strokeRole: width === 0.35 ? "visible-outline" : "leader", sourceId, references });
+  const dashed = (a: Point2, b: Point2, sourceId: string, cutting = false) => out.push({ kind: "line", from: a, to: b, width: 0.18, role: "annotation", strokeRole: cutting ? "cutting-plane" : "detail-boundary", sourceId, references });
   for (const label of view.sectionData?.identifications ?? []) {
     const sourceId = label.id, refs = references.filter(r => r.componentId === label.componentId);
     const anchor = modelToSheet(view, label.anchor), tail = { x: label.at.x + label.text.length * 1.25, y: label.at.y + 1 };
@@ -56,23 +54,24 @@ export function plotSectionMarkers(view: DrawingViewport): PlotEntity[] {
       const a = modelToSheet(view, marker.from), b = modelToSheet(view, marker.to);
       const length = Math.hypot(b.x - a.x, b.y - a.y), along = { x: (b.x - a.x) / length, y: (b.y - a.y) / length };
       const ends = [{ x: a.x - 4 * along.x, y: a.y - 4 * along.y }, { x: b.x + 4 * along.x, y: b.y + 4 * along.y }];
-      dashed(ends[0], ends[1], marker.id);
+      dashed(ends[0], ends[1], marker.id, true);
       const dir = { x: marker.direction.x, y: -marker.direction.y };
-      for (const end of ends) {
+      for (const [index, end] of ends.entries()) {
         const tail = { x: end.x - 7 * dir.x, y: end.y - 7 * dir.y };
         line(tail, end, marker.id, 0.35);
         out.push({ kind: "polygon", sourceId: marker.id, references, points: [end, { x: end.x - 2.5 * dir.x - 0.8 * dir.y, y: end.y - 2.5 * dir.y + 0.8 * dir.x }, { x: end.x - 2.5 * dir.x + 0.8 * dir.y, y: end.y - 2.5 * dir.y - 0.8 * dir.x }] });
-        out.push({ kind: "text", sourceId: marker.id, references, at: { x: tail.x + 1, y: tail.y - 1.5 }, text: marker.label.split("-")[0], size: 2.6, bold: true });
+        out.push({ kind: "text", sourceId: marker.id, references, at: { x: tail.x + (Math.abs(dir.y) > 0 && index === 0 ? -2 - marker.label.split("-")[0].length * DRAWING_TEXT.sectionSymbol : 1), y: tail.y - 1.5 }, text: marker.label.split("-")[0], size: DRAWING_TEXT.sectionSymbol, bold: true });
       }
     } else {
       const a = modelToSheet(view, marker.bounds.min), b = modelToSheet(view, marker.bounds.max);
       const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y), right = Math.max(a.x, b.x), bottom = Math.max(a.y, b.y);
       const corners = [{ x, y }, { x: right, y }, { x: right, y: bottom }, { x, y: bottom }];
       corners.forEach((p, i) => dashed(p, corners[(i + 1) % 4], marker.id));
-      const center = { x: right + 5, y: y - 5 };
-      line({ x: right, y }, { x: center.x - 2, y: center.y + 2 }, marker.id);
+      const below = marker.calloutCorner === "bottom-right";
+      const center = { x: right + 5, y: below ? bottom + 5 : y - 5 };
+      line({ x: right, y: below ? bottom : y }, { x: center.x - 2, y: center.y + (below ? -2 : 2) }, marker.id);
       out.push({ kind: "circle", center, radius: 3, width: 0.2, sourceId: marker.id, references });
-      out.push({ kind: "text", at: { x: center.x, y: center.y + 0.9 }, align: "middle", size: 2.6, text: marker.label, sourceId: marker.id, references });
+      out.push({ kind: "text", at: { x: center.x, y: center.y + 0.9 }, align: "middle", size: DRAWING_TEXT.sectionSymbol, text: marker.label, sourceId: marker.id, references });
     }
   }
   return out;

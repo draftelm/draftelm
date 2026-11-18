@@ -8,6 +8,8 @@ import { bounds3, panelReference, projectPoint } from "../projections";
 import { cropSectionGeometry, generateSectionGeometry } from "../sectionGeometry";
 import { VISIBILITY_EPSILON_MM as EPS } from "../edgeVisibility";
 
+import { verifiedFunctionalGroups } from "./functionalGroups";
+
 export const SECTION_VIEW_IDS = { parent: "context-section-parent", section: "context-section-A-A", detail: "context-detail-B" } as const;
 function freeze<T>(v: T): T { if (v && typeof v === "object") { Object.values(v).forEach(freeze); Object.freeze(v); } return v; }
 /** Registered family selection only. Intersection, cropping and visibility remain
@@ -72,6 +74,17 @@ export function createContextualSectionPlan(result: FurnitureResult, profile: Dr
           from: projectPoint(anchors[0].point, "right"), to: projectPoint(anchors[1].point, "right"),
           references: [...new Map([...d.references, ...faces.map(f => f.reference)].map(r => [r.componentId, r])).values()], role: "reference-repeat" });
       } catch (e) { plan.diagnostics.push({ code: "unsupported-context-anchor", requestId: request.id, message: e instanceof Error ? e.message : "Unsupported section reference." }); }
+    }
+    if (profile.contents.functionalPresentation === "contextual") {
+      for (const binding of plan.dimensionBindings.filter(b => b.view === "detail")) {
+        const group = verifiedFunctionalGroups(functional).find(g => g.requestIds.includes(binding.requestId));
+        if (group) {
+          binding.requestIds = [...group.requestIds]; binding.dimensionIds = [...group.dimensionIds];
+          binding.references = [...new Map([...binding.references, ...group.dimensionIds.flatMap(id => functional.dimensions.find(d => d.id === id)!.references)].map(r => [r.componentId, r])).values()];
+          const request = functional.requests.find(r => r.id === binding.requestId)!;
+          if (request.kind === "drawer-back-clearance" && request.intent.status !== "not-directly-specified") binding.intentNote = `Actual rear space; source ${request.intent.comparison} ${request.intent.valueMm} mm (unverified).`;
+        }
+      }
     }
   } catch (e) {
     plan.section = null; plan.geometry = null; plan.detail = null; plan.dimensionBindings = [];

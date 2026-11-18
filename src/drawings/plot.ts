@@ -6,6 +6,7 @@ import { plotDrawingAnnotations } from "./annotationPlot";
 import { assertGADocument } from "./planning/gaValidation";
 import { canonicalDrawingSnapshot } from "./planning/gaPlan";
 import { plotSectionHatches, plotSectionMarkers } from "./sectionPlot";
+import { DRAWING_TEXT, resolveDrawingStyle, stylePlot } from "./style";
 export { modelToSheet, plotDimension, formatDimension } from "./dimensionPlot";
 
 /** Both SVG and PDF consume these same paper-mm primitives. Text sizes/stroke
@@ -19,25 +20,28 @@ export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotE
   const formal = document.template === "engineering";
   const extraHeight = titleBlockExtraHeight(sheet.metadata);
   const out: PlotEntity[] = [];
-  const line = (a: Point2, b: Point2, width = 0.2) => out.push({ kind: "line", from: a, to: b, width, role: "sheet" });
+  let sheetRole: import("./style").StrokeRole = "title-block";
+  const line = (a: Point2, b: Point2, width = 0.2) => out.push({ kind: "line", from: a, to: b, width, role: "sheet", strokeRole: sheetRole });
   const rect = (x: number, y: number, w: number, h: number) => {
     line({ x, y }, { x: x + w, y }); line({ x: x + w, y }, { x: x + w, y: y + h }); line({ x: x + w, y: y + h }, { x, y: y + h }); line({ x, y: y + h }, { x, y });
   };
   const text = (x: number, y: number, value: string, size = 2.5, bold = false) => out.push({ kind: "text", at: { x, y }, text: value, size, bold });
   rect(10, 10, sheet.widthMm - 20, sheet.heightMm - 20);
+  for (const e of out) if (e.kind === "line") e.strokeRole = "border";
   text(13, 17, formal ? FORMAL_TEMPLATE_LABEL : "Furniture Workshop - preliminary drawing", 3, true);
   for (const view of sheet.viewports) {
     const { heading } = viewportText(view), notes = viewportNotes(view);
-    heading.forEach((value, i) => text(view.frame.x + 3, view.frame.y + 4 + i * 3.3, value, 2.6, true));
-    out.push(...plotSectionHatches(view, document.contextualSectionPlan.geometry?.cutFaces ?? []));
-    for (const e of view.entities) out.push({ kind: "line", from: modelToSheet(view, e.from), to: modelToSheet(view, e.to), role: "geometry", width: e.sectionRole === "cut" ? 0.45 : e.sectionRole === "projected" ? 0.18 : view.projection === "isometric" ? 0.12 : formal ? 0.35 : 0.3, sourceId: e.id, references: e.references });
+    heading.forEach((value, i) => text(view.frame.x + 3, view.frame.y + 4 + i * 3.3, value, DRAWING_TEXT.heading, true));
+    out.push(...plotSectionHatches(view, view.functionalContext ? document.functionalContextPlan?.sections.find(s => s.definition.id === view.functionalContext!.sectionId)?.geometry.cutFaces ?? [] : document.contextualSectionPlan.geometry?.cutFaces ?? []));
+    for (const e of view.entities) out.push({ kind: "line", from: modelToSheet(view, e.from), to: modelToSheet(view, e.to), role: "geometry", strokeRole: e.strokeRole ?? (e.sectionRole === "cut" ? "section-cut" : e.sectionRole === "projected" ? "visible-internal" : "visible-outline"), width: 0.3, sourceId: e.id, references: e.references });
     out.push(...plotSectionMarkers(view));
     for (const d of view.dimensions) out.push(...plotDimension(view, d));
     for (const label of view.referenceLabels ?? []) out.push({ kind: "text", size: 2.5, ...label });
     // Reserved note bands participate in geometry fitting; no text is truncated.
-    notes.forEach((note, i) => out.push({ kind: "text", at: { x: view.frame.x + 3, y: view.frame.y + view.frame.height - 3 - (notes.length - 1 - i) * 2.8 }, size: 2, ...note }));
+    notes.forEach((note, i) => out.push({ kind: "text", at: { x: view.frame.x + 3, y: view.frame.y + view.frame.height - 3 - (notes.length - 1 - i) * 2.8 }, size: DRAWING_TEXT.note, ...note }));
   }
   if (sheet.table) {
+    sheetRole = "table";
     const table = sheet.table;
     text(13, 23, sheet.metadata.subject, 2.6, true);
     let y = table.frame.y;
@@ -52,6 +56,7 @@ export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotE
     };
     row(table.columns.map(c => wrapDrawingText(c.label, c.width - 4, table.fontSize)), table.headerHeight, true);
     for (const fragment of table.rows) row(fragment.cells, fragment.height, false);
+    sheetRole = "title-block";
   }
   out.push(...plotDrawingAnnotations(sheet.annotationModel ?? document.drawingAnnotations, sheet));
   sheet.annotations.flatMap(note => wrapDrawingText(note, sheet.widthMm - 26, 2.2)).forEach((note, i) => text(13, sheet.heightMm - 56 - extraHeight + i * 3, note, 2.2));
@@ -80,5 +85,5 @@ export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotE
   }
   text(13, y + 29 + extraHeight, m.status, 2.8, true);
   text(13, y + 34 + extraHeight, formal ? "BS 8888:2025 candidate. Licensed requirements have not been individually verified." : "Nominal design geometry only. Materials, hardware and manufacturing details unverified.", 2.1);
-  return out;
+  return stylePlot(out, resolveDrawingStyle(document.profile));
 }

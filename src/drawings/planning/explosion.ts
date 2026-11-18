@@ -38,30 +38,59 @@ export function projectedPanelOverlaps(panels: PanelComponent[], gap = 0): strin
   return panels.flatMap((p, i) => panels.slice(i + 1).flatMap((q, j) => separated(polygons[i], polygons[i + j + 1], gap) ? [] : [[p.id, q.id]]));
 }
 
-/** Fan rectangular panels along their actual thickness axes. Uniformly expand
- * spacing until projected panel silhouettes separate, or report residual pairs.
- * This is a display relationship, never a disassembly direction/instruction. */
+/** Smallest translation along a panel's physical thickness axis which clears
+ * the already placed convex box silhouettes. SAT gives forbidden intervals;
+ * jumping to interval ends avoids expanding every part for one difficult pair. */
+function clearDistance(poly: Point2[], direction: Point2, obstacles: Point2[][], gap: number) {
+  const intervals: [number, number][] = [];
+  for (const other of obstacles) {
+    let enter = -Infinity, leave = Infinity;
+    for (const shape of [poly, other]) for (let i = 0; i < shape.length; i++) {
+      const p = shape[i], q = shape[(i + 1) % shape.length], length = Math.hypot(q.x - p.x, q.y - p.y);
+      if (length < 1e-9) continue;
+      const n = { x: -(q.y - p.y) / length, y: (q.x - p.x) / length };
+      const a = poly.map(v => v.x * n.x + v.y * n.y), b = other.map(v => v.x * n.x + v.y * n.y);
+      const speed = direction.x * n.x + direction.y * n.y;
+      const lo = Math.min(...b) - gap - Math.max(...a), hi = Math.max(...b) + gap - Math.min(...a);
+      if (Math.abs(speed) < 1e-9) { if (lo >= 0 || hi <= 0) { enter = Infinity; leave = -Infinity; } }
+      else { enter = Math.max(enter, Math.min(lo / speed, hi / speed)); leave = Math.min(leave, Math.max(lo / speed, hi / speed)); }
+    }
+    if (enter < leave) intervals.push([enter, leave]);
+  }
+  let distance = 0;
+  for (const [enter, leave] of intervals.sort((a, b) => a[0] - b[0])) if (distance > enter - 1e-7 && distance < leave) distance = leave + 1e-6;
+  return distance;
+}
+
+/** Compare deterministic physical-axis packings using actual projected boxes.
+ * Every panel keeps its orientation and moves only outward on its thickness
+ * axis. Offsets are presentation data, never disassembly/process instructions. */
 export function explodeDrawingPanels(panels: PanelComponent[]): { offsets: Record<string, Vector3>; unresolvedPairs: string[][] } {
   const bounds = bounds3(panels), ordered = [...panels].sort((a, b) => a.id.localeCompare(b.id));
   const directions: Record<string, Vector3> = {};
-  for (const axis of axes) {
-    const members = ordered.filter(p => p.thicknessAxis === axis).sort((a, b) => a.position[axis] - b.position[axis] || a.id.localeCompare(b.id));
-    members.forEach((panel, index) => {
-      const center = panel.position[axis] + panel.dimensions[axis] / 2, mid = (bounds.min[axis] + bounds.max[axis]) / 2;
-      const sign = center < mid ? -1 : 1;
-      const rank = sign < 0 ? members.length - index : index + 1;
-      directions[panel.id] = { ...zero(), [axis]: sign * rank * Math.max(bounds.max[axis] - bounds.min[axis], 100) * 0.18 };
-    });
+  for (const panel of ordered) {
+    const axis = panel.thicknessAxis, center = panel.position[axis] + panel.dimensions[axis] / 2;
+    directions[panel.id] = { ...zero(), [axis]: center < (bounds.min[axis] + bounds.max[axis]) / 2 ? -1 : 1 };
   }
-  let offsets: Record<string, Vector3> = {}, unresolvedPairs: string[][] = [];
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const factor = 1.4 ** attempt;
-    offsets = Object.fromEntries(ordered.map(p => [p.id, Object.fromEntries(axes.map(axis => [axis, directions[p.id][axis] * factor])) as unknown as Vector3]));
-    const moved = translateDrawingPanels(ordered, offsets);
-    unresolvedPairs = projectedPanelOverlaps(moved, 25);
-    if (!unresolvedPairs.length) break;
+  let best: { offsets: Record<string, Vector3>; score: number } | undefined;
+  for (const order of ["xyz", "xzy", "yxz", "yzx", "zxy", "zyx"]) for (const reverse of [false, true]) {
+    const sequence = [...ordered].sort((a, b) => order.indexOf(a.thicknessAxis) - order.indexOf(b.thicknessAxis) || (reverse ? -1 : 1) * (a.position[a.thicknessAxis] - b.position[b.thicknessAxis]) || a.id.localeCompare(b.id));
+    const offsets: Record<string, Vector3> = {}, obstacles: Point2[][] = [];
+    for (const panel of sequence) {
+      const direction = directions[panel.id], projected = projectPoint(direction, "isometric");
+      const initial = Math.max(40, (bounds.max[panel.thicknessAxis] - bounds.min[panel.thicknessAxis]) * 0.06);
+      const start = Object.fromEntries(axes.map(a => [a, direction[a] * initial])) as unknown as Vector3;
+      const poly = silhouette(translateDrawingPanels([panel], { [panel.id]: start })[0]);
+      const distance = initial + clearDistance(poly, projected, obstacles, 25);
+      offsets[panel.id] = Object.fromEntries(axes.map(a => [a, direction[a] * distance])) as unknown as Vector3;
+      obstacles.push(silhouette(translateDrawingPanels([panel], offsets)[0]));
+    }
+    const box = projectedBounds(translateDrawingPanels(ordered, offsets)), w = box.max.x - box.min.x, h = box.max.y - box.min.y;
+    const score = w * h + 0.15 * Math.max(w, h) ** 2;
+    if (!best || score < best.score) best = { offsets, score };
   }
-  return { offsets, unresolvedPairs };
+  const offsets = best!.offsets;
+  return { offsets, unresolvedPairs: projectedPanelOverlaps(translateDrawingPanels(ordered, offsets), 25 - 1e-5) };
 }
 
 /** Root view: exploded carcass on the right and rigid drawer groups on the left.

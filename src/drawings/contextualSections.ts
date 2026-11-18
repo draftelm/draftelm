@@ -55,7 +55,7 @@ export function contextualSectionViews(result: FurnitureResult, plan: Contextual
     from: { x: section.plane.coordinateMm, y: box.min.z }, to: { x: section.plane.coordinateMm, y: box.max.z }, direction: { x: -1, y: 0 }, targetViewId: SECTION_VIEW_IDS.section }];
   const main = make("section", plan.geometry.edges, plan.geometry.bounds, "SECTION A-A - LOOKING -X", [`Cut: hatch; retained: thin edges.`, `Detail B: ${detailSheetId}; REF source measurements.`]);
   main.sectionMarkers = [{ kind: "detail-boundary", id: `marker:${plan.detail.id}`, detailId: plan.detail.id, label: plan.detail.label, bounds: plan.detail.crop, targetViewId: SECTION_VIEW_IDS.detail }];
-  const detail = make("detail", detailGeometry.edges, detailGeometry.bounds, "DETAIL B - LOWEST DRAWER / BACK / BASE", [`From A-A: ${sectionSheetId}. Crop limits are not physical edges.`, "REF measured geometry; no tolerance or fixing specification."]);
+  const detail = make("detail", detailGeometry.edges, detailGeometry.bounds, "DETAIL B - LOWEST DRAWER / BACK / BASE", [`From A-A: ${sectionSheetId}. Crop limits are not physical edges.`, "REF measured geometry; no tolerance or fixing specification.", ...plan.dimensionBindings.filter(b => b.view === "detail" && b.intentNote).map(b => b.intentNote!)]);
   return [parent, main, detail].map(view => {
     let placed = positionViewport(view);
     for (const binding of view.sectionData!.dimensionBindings) {
@@ -66,8 +66,8 @@ export function contextualSectionViews(result: FurnitureResult, plan: Contextual
       for (const side of sides) {
         for (const lane of [0, 8, 16]) {
           const distance = side === "top" ? Math.min(a.y, b.y) - max.y : side === "bottom" ? min.y - Math.max(a.y, b.y) : side === "left" ? Math.min(a.x, b.x) - min.x : max.x - Math.max(a.x, b.x);
-          const span = Math.hypot(a.x - b.x, a.y - b.y), textWidth = (`REF ${binding.valueMm}`).length * STYLE.textSizeMm;
-          const dimension: DrawingDimension = { id: binding.id, semanticDimensionId: binding.semanticDimensionId, prefix: "REF ", from: binding.from, to: binding.to, axis: binding.axis,
+          const span = Math.hypot(a.x - b.x, a.y - b.y), prefix = `${(binding.requestIds?.length ?? 1) > 1 ? `${binding.requestIds!.length}x ` : ""}REF `, textWidth = (`${prefix}${binding.valueMm}`).length * STYLE.textSizeMm;
+          const dimension: DrawingDimension = { id: binding.id, semanticDimensionId: binding.semanticDimensionId, prefix, equivalentFunctionalDimensionIds: binding.dimensionIds, from: binding.from, to: binding.to, axis: binding.axis,
             valueMm: binding.valueMm, references: binding.references, offsetPaperMm: distance + 7 + lane,
             placement: { status: "placed", side, arrows: span < textWidth + 2 * STYLE.arrowLengthMm ? "outside" : "inside", style: { ...STYLE } } };
           const candidate = { ...placed, dimensions: [...placed.dimensions, dimension] };
@@ -135,12 +135,12 @@ export function buildContextualSections(result: FurnitureResult, profile: Drawin
   if (views[2].scale <= views[1].scale) diagnostics.push("Detail B could not be enlarged relative to section A-A at the configured sheet size.");
   const placed = views.flatMap(v => v.dimensions.map(d => d.id)), deferred = views.flatMap(v => v.sectionData!.deferredDimensionIds);
   diagnostics.push(...views.flatMap(v => v.sectionData!.deferredIdentificationIds ?? []).map(id => `Component label deferred: ${id}.`));
-  diagnostics.push(...deferred.map(id => `Context measurement ${id} deferred: no reliable dimension lane (including coincident faces). Legacy functional coverage retained.`));
+  diagnostics.push(...deferred.map(id => `Context measurement ${id} deferred: no reliable dimension lane (including coincident faces). See functional coverage for required displays.`));
   const presentation: SectionPresentation = { hostSheetId: host, detailSheetId: detailHost, parentAssemblySheetId: carcass?.id, continuation, placedBindingIds: placed, deferredBindingIds: deferred, diagnostics };
   if (continuation) {
     const add = (id: string, subset: DrawingViewport[]) => {
       const sheet = makeSheet(id, `${id} - ${id === detailHost && detailHost !== host ? "Enlarged assembly detail B" : "Assembly section A-A and contextual detail"}`, 0, subset);
-      sheet.annotations = [`${carcass ? `Assembly context: ${carcass.id}. ` : ""}Measured REF dimensions repeat existing source relationships; legacy FD sheets retain full coverage.`, `${diagnostics.length} contextual placement diagnostics. Hatching denotes actual intersected panels only; no material layers inferred.`];
+      sheet.annotations = [`${carcass ? `Assembly context: ${carcass.id}. ` : ""}Measured REF dimensions repeat existing source relationships; see functional coverage for complete relationship mapping.`, `${diagnostics.length} contextual placement diagnostics. Hatching denotes actual intersected panels only; no material layers inferred.`];
       sheets.push(sheet);
     };
     add(host, views.filter(v => v.id !== SECTION_VIEW_IDS.detail || host === detailHost));

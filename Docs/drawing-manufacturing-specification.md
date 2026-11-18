@@ -185,3 +185,7 @@ This specification establishes a staged target, not a claim that any of these op
 ### Phase 5C.2B implementation note
 
 [Contextual sections and details](contextual-assembly-sections.md) provide a true rectangular-solid assembly section, cut-only hatching, source-linked functional reference repeats and an enlarged rear/back/base crop. Existing component dimensions and all 26 core functional requests remain on their current sheets. This implements a preliminary presentation slice only; datum/tolerance authority, machining/fixing detail and manufacturing-release requirements remain unfulfilled.
+
+### Phase 5C.2C implementation note
+
+[Contextual functional dimensions](contextual-functional-dimensions.md) now provide preliminary contextual coverage for all 26 core requests, preserving source values and distinguishing actual rear space from its minimum intent. Normal built-in profiles use contextual FC/SC drawings instead of isolated FD sheets. This does not satisfy unimplemented feature, tolerance, inspection, hardware or manufacturing-release requirements.

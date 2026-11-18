@@ -4,7 +4,7 @@ import type { GeneralAssemblyPlan } from "./types";
 /** Paper layout only. Source dimensions and view intent are never changed to fit. */
 export function layoutGAViews(plan: GeneralAssemblyPlan, page: { width: number; height: number }, convention: ProjectionConvention): { frames: Record<Projection, Rect>; partsListSlot: Rect | null } {
   if (plan.policy.layoutStrategy !== "drawer-chest-primary-and-supports-v1") throw new Error("No registered layout for the GA policy; review the furniture-family layout strategy.");
-  const body = { x: 10, y: 23, width: page.width - 20, height: page.height - 85 };
+  const body = { x: 10, y: 23, width: page.width - 20, height: page.height - 87 };
   const dominantIso = plan.policy.selectedPrimary === "isometric";
   const primaryWidth = dominantIso ? body.width * 0.42 : 0;
   const support = dominantIso ? { x: body.x + primaryWidth + 8, y: body.y, width: body.width - primaryWidth - 8, height: body.height } : body;

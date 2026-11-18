@@ -4,9 +4,10 @@ import { formatDimension, modelToSheet, plotDimension } from "./dimensionPlot";
 import { containsRect, overlaps, primitiveBounds } from "./annotationGeometry";
 import { viewportText } from "./layout";
 import { positionViewport } from "./viewports";
+import { DRAWING_TEXT } from "./style";
 
 export const DEFAULT_COMPONENT_DIMENSION_STYLE: Readonly<ComponentDimensionStyle> = Object.freeze({
-  id: "rectangular-component-paper-mm-1", textSizeMm: 2.5, arrowLengthMm: 2.4, arrowHalfWidthMm: 0.7, lineWidthMm: 0.18,
+  id: "rectangular-component-paper-mm-1", textSizeMm: DRAWING_TEXT.dimension, arrowLengthMm: 2.4, arrowHalfWidthMm: 0.7, lineWidthMm: 0.18,
   extensionGapMm: 1, extensionOverrunMm: 1.5, textGapMm: 1.2,
   clearanceMm: 7, laneSpacingMm: 3, lanes: 4, collisionGapMm: 0.5,
 });

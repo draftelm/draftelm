@@ -22,6 +22,10 @@ import { functionalDetailSheets, functionalDimensionCoverage } from "./functiona
 
 import { createContextualSectionPlan } from "./planning/contextualSections";
 import { buildContextualSections } from "./contextualSections";
+import { createFunctionalContextPlan } from "./planning/functionalContext";
+import { buildFunctionalContextSheets, functionalContextPresentation as presentFunctionalContext } from "./functionalContext";
+
+import { assessComposition } from "./composition";
 
 export const FORMAL_TEMPLATE_LABEL = "BS 8888 / ISO-style — compliance not yet verified";
 export const SHEET_FORMATS: Record<SheetFormat, { width: number; height: number }> = { A4: { width: 297, height: 210 }, A3: { width: 420, height: 297 }, A2: { width: 594, height: 420 }, A1: { width: 841, height: 594 } };
@@ -61,6 +65,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     const gaPlan = planned.plan;
     const functionalDimensionPlan = createFunctionalDimensionPlan(result, profile);
     const contextualSectionPlan = createContextualSectionPlan(result, profile, functionalDimensionPlan);
+    const functionalContextPlan = createFunctionalContextPlan(result, profile, functionalDimensionPlan, contextualSectionPlan);
     const assemblyPlan = createAssemblyDrawingPlan(result, profile, gaPlan.source.rootAssemblyId, gaPlan.source.carcassAssemblyId);
     const gaScope = { kind: "general" as const, representativeId: assemblyPlan.rootId, assemblyIds: [assemblyPlan.rootId] };
     const gaAnnotations = profile.annotations.gaLevel === "assemblies" ? createScopedAnnotations(result, assemblyPlan, gaScope, profile.annotations) : drawingAnnotations;
@@ -129,6 +134,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     });
     sheets.push(...buildAssemblySheets(result, profile, assemblyPlan, layoutPage, sheet));
     const sectionPresentation = buildContextualSections(result, profile, contextualSectionPlan, sheets, layoutPage, sheet);
+    buildFunctionalContextSheets(profile, functionalContextPlan, sheets, layoutPage, sheet);
     sheets.push(...functionalDetailSheets(result, profile, functionalDimensionPlan, layoutPage, sheet));
     const addTables = (prefix: string, subject: string, tables: ReturnType<typeof paginateSchedule>) => {
       tables.forEach((table, index) => {
@@ -161,8 +167,9 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     const annotationIssues = validateDrawingAnnotations(result, drawingAnnotations, sheets);
     if (annotationIssues.length) return { document: null, issues: annotationIssues };
     const dimensionCoverage = componentDimensionCoverage(componentDimensionPlan, sheets.flatMap(s => s.viewports).filter(v => v.projection === "panel-face"), contents.componentDrawings);
-    const functionalCoverage = functionalDimensionCoverage(functionalDimensionPlan, sheets, !!contents.functionalDimensions);
-    const document = { schemaVersion: 1 as const, specificationRevision: result.specificationRevision, template: options.template, projectionConvention: options.projectionConvention, standardsCandidate: "BS 8888:2025" as const, complianceVerified: false as const, manufacturingReady: false as const, sheets, componentSchedule, cuttingList, reconciliation, drawingAnnotations, gaPlan, assemblyPlan, componentDimensionPlan, componentDimensionCoverage: dimensionCoverage, functionalDimensionPlan, functionalDimensionCoverage: functionalCoverage, contextualSectionPlan, sectionPresentation, profile,
+    const functionalContextPresentation = presentFunctionalContext(functionalContextPlan, functionalDimensionPlan, sheets, !!contents.functionalDimensions);
+    const functionalCoverage = functionalDimensionCoverage(functionalDimensionPlan, sheets, !!contents.functionalDimensions, functionalContextPresentation);
+    const document = { compositionReport: assessComposition(sheets), schemaVersion: 1 as const, specificationRevision: result.specificationRevision, template: options.template, projectionConvention: options.projectionConvention, standardsCandidate: "BS 8888:2025" as const, complianceVerified: false as const, manufacturingReady: false as const, sheets, componentSchedule, cuttingList, reconciliation, drawingAnnotations, gaPlan, assemblyPlan, componentDimensionPlan, componentDimensionCoverage: dimensionCoverage, functionalDimensionPlan, functionalDimensionCoverage: functionalCoverage, functionalContextPlan, functionalContextPresentation, contextualSectionPlan, sectionPresentation, profile,
       output: { assemblyViews: [...contents.assemblyViews], componentDrawings: contents.componentDrawings, cuttingList: contents.cuttingList.include, hardwareSchedule: contents.hardwareSchedule, assemblySheets: { ...contents.assemblySheets }, omittedSections },
       hardware: { allowances: hardwareAllowances, approvedPurchasingItems: [] as [], policy: "approved-only" as const } };
     const planIssues = validateGADocument(document);

@@ -1,4 +1,5 @@
 import type { DrawingDimension, DrawingViewport, PlotEntity, Point2 } from "./types";
+import { DRAWING_TEXT } from "./style";
 export function modelToSheet(view: DrawingViewport, point: Point2): Point2 {
   return { x: view.origin.x + point.x * view.scale, y: view.origin.y - point.y * view.scale };
 }
@@ -7,11 +8,11 @@ export function plotDimension(view: DrawingViewport, d: DrawingDimension): PlotE
   if (d.placement?.status === "unplaced") return [];
   const a = modelToSheet(view, d.from), b = modelToSheet(view, d.to), offset = d.offsetPaperMm;
   const placement = d.placement?.status === "placed" ? d.placement : undefined, style = placement?.style;
-  const size = style?.textSizeMm ?? 2.5, arrow = style?.arrowLengthMm ?? 2.4, half = style?.arrowHalfWidthMm ?? 0.7;
+  const size = style?.textSizeMm ?? DRAWING_TEXT.dimension, arrow = style?.arrowLengthMm ?? 2.4, half = style?.arrowHalfWidthMm ?? 0.7;
   const gap = style?.extensionGapMm ?? 1, overrun = style?.extensionOverrunMm ?? 1.5, textGap = style?.textGapMm ?? 1.2;
   const outside = placement?.arrows === "outside", arrowSign = outside ? -1 : 1;
   const out: PlotEntity[] = [];
-  const line = (from: Point2, to: Point2) => out.push({ kind: "line", from, to, width: style?.lineWidthMm ?? 0.18, role: "dimension", sourceId: d.id, references: d.references });
+  const line = (from: Point2, to: Point2) => out.push({ kind: "line", from, to, width: style?.lineWidthMm ?? 0.18, role: "dimension", strokeRole: out.length < 2 ? "extension" : "dimension", sourceId: d.id, references: d.references });
   const text = `${d.prefix ?? ""}${formatDimension(d.valueMm)}`;
   if (d.axis === "horizontal") {
     const direction = placement?.side === "top" ? -1 : 1;

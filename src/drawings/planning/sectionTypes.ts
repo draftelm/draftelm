@@ -30,6 +30,8 @@ export interface SectionDimensionBinding {
   anchors: { sourceFaceId: string; sectionFaceId: string; componentId: string; point: Vector3;
     mapping: "direct-intersection" | "coplanar-carcass-rear-envelope" }[];
   from: Point2; to: Point2; references: ComponentReference[];
+  intentNote?: string;
+  requestIds?: string[]; dimensionIds?: FunctionalDimensionId[];
   role: "reference-repeat";
 }
 export interface ContextualSectionPlan {
@@ -49,7 +51,7 @@ export interface SectionViewportData {
 }
 export type SectionReferenceMarker =
   | { kind: "cutting-plane"; id: string; sectionId: string; label: string; from: Point2; to: Point2; direction: Point2; targetViewId: string }
-  | { kind: "detail-boundary"; id: string; detailId: string; label: string; bounds: Bounds2; targetViewId: string };
+  | { kind: "detail-boundary"; id: string; detailId: string; label: string; bounds: Bounds2; targetViewId: string; calloutCorner?: "top-right" | "bottom-right" };
 export interface SectionPresentation {
   hostSheetId: string; detailSheetId: string; parentAssemblySheetId?: string; continuation: boolean;
   placedBindingIds: string[]; deferredBindingIds: string[]; diagnostics: string[];

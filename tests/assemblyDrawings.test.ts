@@ -219,11 +219,13 @@ test("unplaced balloons, concealed internal panels and unresolved projection ove
   assert(sheet(small, "EA-001").annotationModel!.diagnostics.some(d => d.code === "no-visible-edge" || d.code === "layout-full"));
 });
 
-test("bounded explosion search reports residual overlaps rather than hiding unsupported spacing", () => {
+test("physical box interval packing separates panels beyond the former uniform expansion limit", () => {
   const panel = { kind: "panel" as const, id: "large-1", assemblyId: "scope", name: "large", materialId: "existing", quantity: 1, thickness: 1, thicknessAxis: "y" as const,
     position: { x: 0, y: 0, z: 0 }, dimensions: { x: 10000, y: 1, z: 10000 } };
   const second = { ...panel, id: "large-2", position: { ...panel.position, y: 2 } };
-  assert.deepEqual(explodeDrawingPanels([panel, second]).unresolvedPairs, [["large-1", "large-2"]]);
+  const explosion = explodeDrawingPanels([panel, second]);
+  assert.deepEqual(explosion.unresolvedPairs, []);
+  assert.deepEqual(projectedPanelOverlaps(translateDrawingPanels([panel, second], explosion.offsets), 24.99), []);
 });
 
 test("long source materials paginate scoped lists at fixed lettering with unique numbering and complete quantities", () => {

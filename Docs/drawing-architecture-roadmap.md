@@ -546,3 +546,11 @@ Phase 5A recommends the boundaries and first slice; it does not settle those eng
 ## Implemented Phase 5C.2B slice
 
 [Contextual assembly sections and details](contextual-assembly-sections.md) separate source-bound section definitions/intersections, cropped contextual geometry, functional measurement bindings and paper placement. The reusable half-space rectangular-solid kernel feeds shared SVG/PDF hatching/markers; a registered chest selector chooses one meaningful plane and detail. Existing FD coverage stays intact. This is a bounded preliminary capability, without arbitrary CAD section editing or manufacturing authority.
+
+## Implemented Phase 5C.2C slice
+
+[Contextual functional consolidation](contextual-functional-dimensions.md) adds a source-bound requirement-to-view map over existing measurements, verified equal-value grouping, closed front crops and a horizontal rectangular-solid section. Shared placement/render validation preserves semantic/presentation separation and reports missing displays. Normal built-in profiles omit legacy FD sheets; diagnostic mode and older saved-profile behaviour remain available. No engineering sizing, machining or release capability is added.
+
+## Implemented Phase 5C.2D slice
+
+[Professional drawing composition](professional-drawing-composition.md) adds physical-box explosion packing, geometry-relative balloon placement, annotated paper fitting, related functional-view composition, a shared semantic paper style with bounded company overrides, and source-bound composition diagnostics. The default A3 package remains 12 sheets, with front/D/E/F, C-C/I/J and A-A/B kept in their respective families. Geometry, BOM, revision protection and false readiness/compliance are preserved. Normative verification and general CAD capabilities remain deferred.

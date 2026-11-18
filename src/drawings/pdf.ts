@@ -20,7 +20,7 @@ export async function exportDrawingPDF(document: DrawingDocument): Promise<Uint8
     const y = (value: number) => (sheet.heightMm - value) * MM_TO_PT;
     const ink = rgb(0.08, 0.08, 0.08);
     for (const entity of plotSheet(document, sheet)) {
-      if (entity.kind === "line") page.drawLine({ start: { x: entity.from.x * MM_TO_PT, y: y(entity.from.y) }, end: { x: entity.to.x * MM_TO_PT, y: y(entity.to.y) }, thickness: entity.width * MM_TO_PT, color: ink });
+      if (entity.kind === "line") page.drawLine({ start: { x: entity.from.x * MM_TO_PT, y: y(entity.from.y) }, end: { x: entity.to.x * MM_TO_PT, y: y(entity.to.y) }, thickness: entity.width * MM_TO_PT, dashArray: entity.dash?.map(n => n * MM_TO_PT), color: ink });
       else if (entity.kind === "polygon") {
         const path = entity.points.map((p, i) => `${i ? "L" : "M"} ${p.x * MM_TO_PT} ${p.y * MM_TO_PT}`).join(" ") + " Z";
         // drawSvgPath uses SVG's downward Y convention about the supplied PDF origin.

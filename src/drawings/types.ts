@@ -23,11 +23,15 @@ export interface DrawingProfile {
     /** Omitted on saved older profiles: preserve their previous sheet selection. */
     functionalDimensions?: boolean;
     contextualSections?: boolean;
+    /** Absent saved profiles preserve isolated-edge output; current defaults use context. */
+    functionalPresentation?: "contextual" | "isolated-edges";
   };
   titleBlock: { projectName: string; companyName?: string; additionalFields: TitleBlockField[] };
   numbering: { prefix: string; revision: string; scheme: "by-sheet-kind" | "sequential"; startAt: number };
   /** No profile can turn demonstration allowances into approved purchasing quantities. */
   hardwarePurchasing: "approved-only";
+  /** Bounded company presentation overrides; no engineering or approval data. */
+  presentation?: { lineWeights?: Partial<Record<import("./style").StrokeRole, number>> };
   annotations: { balloons: boolean; assemblyPartsList: boolean;
     gaLevel: "panels" | "assemblies";
     balloonDisplay: "one-per-item" | "visible-occurrences"; itemNumberStyle: "numeric" | "prefixed" };
@@ -38,7 +42,7 @@ export interface DrawingProfile {
   };
 }
 export type DrawingProfileV2 = Omit<DrawingProfile, "schemaVersion" | "contents" | "annotations"> & {
-  schemaVersion: 2; contents: Omit<DrawingProfile["contents"], "assemblySheets" | "functionalDimensions" | "contextualSections">;
+  schemaVersion: 2; contents: Omit<DrawingProfile["contents"], "assemblySheets" | "functionalDimensions" | "contextualSections" | "functionalPresentation">;
   annotations: Omit<DrawingProfile["annotations"], "gaLevel">;
 };
 export type DrawingProfileV1 = Omit<DrawingProfileV2, "schemaVersion" | "annotations"> & { schemaVersion: 1 };
@@ -47,12 +51,14 @@ export interface DrawingLine {
   kind: "line"; id: string; from: Point2; to: Point2;
   references: ComponentReference[];
   sectionRole?: "cut" | "projected";
+  strokeRole?: import("./style").StrokeRole;
 }
 export interface DrawingDimension {
   id: string; from: Point2; to: Point2; axis: "horizontal" | "vertical";
   valueMm: number; prefix?: string; offsetPaperMm: number; references: ComponentReference[];
   semanticDimensionId?: GADimensionId | ComponentDimensionId | FunctionalDimensionId;
   equivalentDimensionIds?: ComponentDimensionId[];
+  equivalentFunctionalDimensionIds?: FunctionalDimensionId[];
   placement?: DimensionPlacement;
 }
 export interface DrawingViewport {
@@ -71,6 +77,7 @@ export interface DrawingViewport {
   thicknessDimension?: LinkedThicknessDimension;
   componentDimensionLayout?: ComponentDimensionLayout;
   functionalDimension?: FunctionalDimensionPlacement;
+  functionalContext?: import("./planning/functionalContextTypes").FunctionalContextViewportData;
   sectionData?: import("./planning/sectionTypes").SectionViewportData;
   sectionMarkers?: import("./planning/sectionTypes").SectionReferenceMarker[];
   referenceLabels?: { sourceId: string; text: string; at: Point2; references: ComponentReference[] }[];
@@ -180,9 +187,12 @@ export interface DrawingDocument {
   componentDimensionCoverage: ComponentDimensionCoverage;
   functionalDimensionPlan: FunctionalDimensionPlan;
   functionalDimensionCoverage: FunctionalDimensionCoverage;
+  functionalContextPlan: import("./planning/functionalContextTypes").FunctionalContextPlan | null;
+  functionalContextPresentation: import("./planning/functionalContextTypes").FunctionalContextPresentation | null;
   contextualSectionPlan: import("./planning/sectionTypes").ContextualSectionPlan;
   sectionPresentation: import("./planning/sectionTypes").SectionPresentation | null;
   profile: DrawingProfile;
+  compositionReport: import("./composition").CompositionReport;
   output: {
     assemblyViews: Projection[]; componentDrawings: boolean; cuttingList: boolean;
     hardwareSchedule: boolean; omittedSections: string[];
@@ -199,7 +209,7 @@ export interface DrawingOptions {
 }
 export interface DrawingResult { document: DrawingDocument | null; issues: string[] }
 export type PlotEntity =
-  | { kind: "line"; from: Point2; to: Point2; width: number; role: "geometry" | "dimension" | "sheet" | "annotation" | "hatch"; sourceId?: string; references?: ComponentReference[] }
+  | { kind: "line"; from: Point2; to: Point2; width: number; role: "geometry" | "dimension" | "sheet" | "annotation" | "hatch"; strokeRole?: import("./style").StrokeRole; dash?: number[]; sourceId?: string; references?: ComponentReference[] }
   | { kind: "polygon"; points: Point2[]; sourceId?: string; references?: ComponentReference[] }
   | { kind: "circle"; center: Point2; radius: number; width: number; filled?: boolean; sourceId?: string; references?: ComponentReference[] }
   | { kind: "text"; at: Point2; text: string; size: number; rotation?: number; align?: "start" | "middle"; bold?: boolean; sourceId?: string; references?: ComponentReference[] };

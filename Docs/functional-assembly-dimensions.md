@@ -81,3 +81,7 @@ Engineering review remains required for approved minimum/functional clearance po
 ## Phase 5C.2B contextual presentation
 
 [Contextual assembly sections](contextual-assembly-sections.md) now add true solid section A-A and enlarged rear/back/base detail B. They repeat three existing measured requests with explicit source/section-face mappings; all 26 legacy core placements and 20 supporting deferrals remain unchanged. Current default packages have 12 A3 sheets and 18 A4 sheets; A1 uses spare CS-001 space. The earlier validation/package counts above describe the Phase 5C.2 milestone.
+
+## Phase 5C.2C presentation consolidation
+
+[Contextual functional drawings](contextual-functional-dimensions.md) replace isolated-edge sheets in normal Workshop/Engineering defaults. All 26 core requests have explicit primary contextual mappings; original semantic values and the 20 supporting deferrals remain unchanged. D/E/F show closed front gaps/reveals, C-C/I/J show true sectional lateral clearances, and A-A/B retain measured rear/inset geometry. Saved older profiles and an explicit diagnostic mode retain legacy FD output.

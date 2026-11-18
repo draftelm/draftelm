@@ -3,12 +3,27 @@ import type { DrawingViewport, PlotEntity, Point2, Projection, Rect } from "./ty
 import { projectPoint } from "./projections";
 import { modelToSheet } from "./dimensionPlot";
 import { panelEdges, pointIsVisible } from "./edgeVisibility";
+import { DRAWING_TEXT } from "./style";
 export { panelEdges } from "./edgeVisibility";
 
-export const BALLOON_STYLE = { radius: 3.5, textSize: 3, strokeWidth: 0.25, anchorRadius: 0.5, clearance: 0.7 };
+export const BALLOON_STYLE = { radius: 3.5, textSize: DRAWING_TEXT.balloon, strokeWidth: 0.25, anchorRadius: 0.5, clearance: 0.7 };
 export const overlaps = (a: Rect, b: Rect, gap = 0) => a.x < b.x + b.width + gap && b.x < a.x + a.width + gap && a.y < b.y + b.height + gap && b.y < a.y + a.height + gap;
 export const containsRect = (outer: Rect, inner: Rect) => inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
 export const balloonBounds = (center: Point2): Rect => ({ x: center.x - BALLOON_STYLE.radius, y: center.y - BALLOON_STYLE.radius, width: BALLOON_STYLE.radius * 2, height: BALLOON_STYLE.radius * 2 });
+export function convexHull(points: Point2[]): Point2[] {
+  const sorted = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  const cross = (a: Point2, b: Point2, c: Point2) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  const half = (values: Point2[]) => { const hull: Point2[] = []; for (const p of values) { while (hull.length >= 2 && cross(hull[hull.length - 2], hull[hull.length - 1], p) <= 0) hull.pop(); hull.push(p); } return hull.slice(0, -1); };
+  return [...half(sorted), ...half([...sorted].reverse())];
+}
+export function insideConvexHull(point: Point2, hull: Point2[]) {
+  return hull.length >= 3 && hull.every((a, i) => { const b = hull[(i + 1) % hull.length]; return (b.x - a.x) * (point.y - a.y) - (b.y - a.y) * (point.x - a.x) >= -1e-7; });
+}
+export function panelPaperSilhouette(panel: PanelComponent, view: DrawingViewport): Point2[] {
+  if (view.projection === "panel-face") return [];
+  const projection = view.projection;
+  return convexHull(panelEdges(panel).flatMap(e => [e.from, e.to]).map(p => modelToSheet(view, projectPoint(p, projection))));
+}
 export function primitiveBounds(entity: PlotEntity): Rect {
   if (entity.kind === "circle") return { x: entity.center.x - entity.radius, y: entity.center.y - entity.radius, width: entity.radius * 2, height: entity.radius * 2 };
   if (entity.kind === "text") {

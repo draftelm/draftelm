@@ -14,11 +14,19 @@ export function getPreFunctionalProfile(id?: string) {
   const profile = getDrawingProfile(id);
   delete profile.contents.functionalDimensions;
   delete profile.contents.contextualSections;
+  delete profile.contents.functionalPresentation;
   return profile;
 }
 
 export function getPreSectionsProfile(id?: string) {
   const profile = getDrawingProfile(id);
+  delete profile.contents.functionalPresentation;
   delete profile.contents.contextualSections;
+  return profile;
+}
+
+export function getPreConsolidationProfile(id?: string) {
+  const profile = getDrawingProfile(id);
+  delete profile.contents.functionalPresentation;
   return profile;
 }

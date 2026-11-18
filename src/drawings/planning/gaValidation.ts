@@ -8,8 +8,11 @@ import { createAssemblyDrawingPlan, translateDrawingPanels } from "./assemblies"
 import { assemblyVisibilityDiagnostics, createAssemblyScenes } from "../assemblySheets";
 import { validateScopedAnnotations } from "../assemblyAnnotations";
 import { validateComponentDimensionDocument } from "./componentValidation";
+import { validateFunctionalContextDocument } from "./functionalContextValidation";
 import { validateContextualSectionDocument } from "./sectionValidation";
 import { validateFunctionalDimensionDocument } from "./functionalValidation";
+
+import { validateCompositionReport } from "../composition";
 
 /** Validate frozen source/plan/presentation consistency at the shared render boundary.
  * Without a current engineering input this verifies the captured snapshot, not that
@@ -21,9 +24,11 @@ export function validateGADocument(document: DrawingDocument): string[] {
     const source: FurnitureResult = JSON.parse(plan.binding.sourceSnapshot);
     const issues = validateGeneralAssemblyPlan(plan, source, document.profile, document.drawingAnnotations);
     if (issues.length) return issues;
+    issues.push(...validateCompositionReport(document));
     issues.push(...validateComponentDimensionDocument(document, source));
     issues.push(...validateFunctionalDimensionDocument(document, source));
     issues.push(...validateContextualSectionDocument(document, source));
+    issues.push(...validateFunctionalContextDocument(document, source));
     issues.push(...reconcileDrawingParts(source, document.componentSchedule).issues.map(i => i.message));
     issues.push(...validateDrawingAnnotations(source, document.drawingAnnotations, document.sheets));
     const assemblyPlan = createAssemblyDrawingPlan(source, document.profile, plan.source.rootAssemblyId, plan.source.carcassAssemblyId);
@@ -36,7 +41,7 @@ export function validateGADocument(document: DrawingDocument): string[] {
       const sheet = assemblySheets.find(s => s.id === scene.id);
       if (!sheet || canonicalDrawingSnapshot(sheet.assemblyScope) !== canonicalDrawingSnapshot(scene.scope)) { issues.push(`Assembly drawing scope differs from its source: ${scene.id}.`); continue; }
       const expectedViews = scene.scope.kind === "exploded" ? 1 : 2;
-      const assemblyViews = sheet.viewports.filter(v => !v.sectionData);
+      const assemblyViews = sheet.viewports.filter(v => !v.sectionData && !v.functionalContext);
       if (assemblyViews.length !== expectedViews || new Set(assemblyViews.map(v => v.id)).size !== expectedViews) issues.push(`Assembly drawing views are missing or duplicated: ${scene.id}.`);
       for (const view of assemblyViews) {
         const exploded = view.id === `${scene.id}-exploded`, assembled = view.id === `${scene.id}-assembled`;

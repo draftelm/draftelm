@@ -29,6 +29,7 @@ export function wrapDrawingText(value: string, width: number, size: number): str
 export function viewportNotes(view: DrawingViewport): { text: string; sourceId?: string; references?: ComponentReference[] }[] {
   const thickness = view.thicknessDimension?.status === "placed" ? view.thicknessDimension : undefined;
   return [
+    ...(view.functionalContext?.coincidentNotes ?? []),
     ...(view.functionalDimension?.status === "placed" && view.functionalDimension.valueMm === 0 ? [{ text: "Measured 0 mm (coincident reference planes)", sourceId: view.functionalDimension.representativeDimensionId, references: view.references }] : []),
     ...(thickness ? [{ text: `Thickness ${formatDimension(thickness.valueMm)} mm (normal to face)`, sourceId: thickness.id, references: thickness.references }] : []),
     ...view.annotations.map(text => ({ text })),
@@ -44,8 +45,15 @@ export function viewportText(view: DrawingViewport) {
 
 export function viewportPadding(view: DrawingViewport) {
   const { heading, notes } = viewportText(view);
-  return { left: Math.max(25, view.balloonMargin ?? 0), right: Math.max(view.sectionData ? 14 : 8, view.balloonMargin ?? 0), top: 7 + (heading.length - 1) * 3.3 + (view.functionalDimension ? 5 : 0) + (view.sectionData?.kind === "detail" ? 28 : view.sectionData?.kind === "parent" ? 12 : view.sectionData ? 8 : 0),
+  const contextTop = view.functionalContext ? view.functionalContext.kind === "detail" ? 28 : 10 : 0;
+  return { left: Math.max(view.projection === "isometric" && !view.dimensions.length ? 8 : 25, view.balloonMargin ?? 0), right: Math.max(view.sectionData || view.functionalContext ? 14 : 8, view.balloonMargin ?? 0), top: 7 + (heading.length - 1) * 3.3 + (view.functionalDimension ? 5 : 0) + contextTop + (view.sectionData?.kind === "detail" ? 28 : view.sectionData?.kind === "parent" ? 12 : view.sectionData ? 8 : 0),
     bottom: notes.length ? 15 + notes.length * 2.8 : 13 };
+}
+
+/** Page height already excludes optional title-block rows. All composers share
+ * the header, border, two sheet-note lines and title-block clearance. */
+export function drawingRegion(page: { width: number; height: number }) {
+  return { x: 10, y: 23, width: page.width - 20, height: page.height - 87 };
 }
 
 const numberText = (n: number) => Number(n.toFixed(6)).toString();

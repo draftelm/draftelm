@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { PDFArray, PDFDocument, PDFRawStream, decodePDFRawStream } from "pdf-lib";
 import { createDemoChestSpecification, generateFurniture } from "../src/furniture";
 import type { FurnitureSpecification, PanelComponent } from "../src/furniture";
-import { generateDrawingDocument, getDrawingProfile, generateSectionGeometry, cropSectionGeometry, contextualViewCollisions, createContextualSectionPlan, parseDrawingProfile, loadDrawingPreferences, saveDrawingPreferences, validateGADocument, plotSheet, SECTION_VIEW_IDS } from "../src/drawings";
+import { generateDrawingDocument, generateSectionGeometry, cropSectionGeometry, contextualViewCollisions, createContextualSectionPlan, parseDrawingProfile, loadDrawingPreferences, saveDrawingPreferences, validateGADocument, plotSheet, SECTION_VIEW_IDS } from "../src/drawings";
 import type { DrawingDocument, DrawingProfile, SectionDefinition } from "../src/drawings";
 import { cameraDirection } from "../src/drawings/edgeVisibility";
 import { projectPoint } from "../src/drawings/projections";
@@ -13,6 +13,8 @@ import { plotSectionHatches, sectionHatchPatterns } from "../src/drawings/sectio
 import { contextualSectionViews } from "../src/drawings/contextualSections";
 import { canonicalDrawingSnapshot } from "../src/drawings/planning/gaPlan";
 import { exportDrawingPDF, MM_TO_PT } from "../src/drawings/pdf";
+
+import { getPreConsolidationProfile as getDrawingProfile } from "./drawingFixtures";
 
 function fixture(edit: (s: FurnitureSpecification) => void = () => {}, profile = getDrawingProfile()) {
   const specification = createDemoChestSpecification(); edit(specification);
