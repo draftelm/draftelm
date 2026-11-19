@@ -101,3 +101,11 @@ Local review artifacts: `/private/tmp/draftelm-5d2-reviewed-package.pdf`, `draft
 This phase does not add approved stock definitions, a durable part-number registry, authenticated review, finished-size calculations, treatment deductions, physical edging geometry, continuous grain matching, feature/process engineering, nesting, machining, CSV/XLSX/ZIP export or a CAD editor. The simple UI does not author advanced matching groups, stock grain constraints, grade verification or full process definitions; those supplied source-bound fields remain preserved and subject to validation. Finish inputs are specification references, and appearance/process details supplied through the domain remain visible without becoming approved instructions.
 
 Before manufacturing approval, engineering/manufacturer review must establish real stock/grade/codes, physical face intent and acceptance criteria, grain/matching/reversal constraints, treatment and finish definitions, validated finished-to-blank relationships, fixing/process details, tolerance/inspection authority and an authenticated release workflow. `manufacturingReady=false`, `complianceVerified=false`, purchasing quantities remain zero for generic allowances, and this phase makes no BS/ISO compliance claim. No automatic commit or push is performed.
+
+## Phase 5D.3 update
+
+The [simplified workshop workflow](simplified-manufacturing-workflow.md) supersedes the all-fields-at-once editor described above. New application defaults use Basic mode, interactive A/B face/edge selection, compact selected-panel notes and a 16-page reference A3 package. Detailed tables and selected-plus-edited scope remain optional and persist through drawing profiles; older saved profiles retain their prior output. The ten-field occurrence dataset, source bindings and preliminary safeguards remain intact.
+
+## Phase 5D.4 drawing integration
+
+[Versioned libraries and keyed annotations](manufacturing-libraries-drawing-integration.md) add reviewed material/edge/finish selection, persistent pinned snapshots, displayed A/B face/rotation, clearer grain/face/edge ink, explicit matching notes and a shared LC definition legend. The default unspecified application package remains 16 pages; the reviewed synthetic library example is 17 pages. No stock/size/purchasing approval is inferred.

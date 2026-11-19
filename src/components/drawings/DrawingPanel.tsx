@@ -9,9 +9,10 @@ import DrawingSettings from "./DrawingSettings";
 
 import type { ManufacturingDrawingInput } from "../../drawings/manufacturing";
 import ManufacturingSchedule from "../furniture/ManufacturingSchedule";
+import { manufacturingWorkflowProfile } from "../../drawings/manufacturingOutput";
 
 export default function DrawingPanel({ result, manufacturingInput, requestedManufacturingDrawing, onSelectManufacturingPanel }: { result: FurnitureResult; manufacturingInput?: ManufacturingDrawingInput; requestedManufacturingDrawing?: { panelId: string; serial: number }; onSelectManufacturingPanel?: (id: string) => void }) {
-  const [profile, setProfile] = useState<DrawingProfile>(() => getDrawingProfile());
+  const [profile, setProfile] = useState<DrawingProfile>(() => manufacturingInput ? manufacturingWorkflowProfile(getDrawingProfile()) : getDrawingProfile());
   const [baseProfileId, setBaseProfileId] = useState("furniture-workshop");
   const [preferencesMessage, setPreferencesMessage] = useState("");
   const [selectedSheet, setSelectedSheet] = useState("GA-001");
@@ -26,7 +27,7 @@ export default function DrawingPanel({ result, manufacturingInput, requestedManu
   const sheet = (requestedPanel ? document?.sheets.find(s => s.manufacturingComponentId === requestedPanel && s.viewports.length) : document?.sheets.find(s => s.id === selectedSheet)) ?? document?.sheets[0];
   const annotationModel = sheet?.annotationModel ?? document?.drawingAnnotations;
   function selectProfile(id: string) {
-    setBaseProfileId(id); setProfile(getDrawingProfile(id)); setPreferencesMessage("Profile defaults applied. Preview updated.");
+    setBaseProfileId(id); setProfile(manufacturingInput ? manufacturingWorkflowProfile(getDrawingProfile(id)) : getDrawingProfile(id)); setPreferencesMessage("Profile defaults applied. Preview updated.");
   }
   function savePreferences() {
     try {
@@ -100,7 +101,7 @@ export default function DrawingPanel({ result, manufacturingInput, requestedManu
           <ul>{document.compositionReport.views.filter(v => v.sheetId === sheet.id).map(v => <li key={v.viewId}>{v.viewId}: {Math.round(v.utilisation * 100)}% projected envelope utilisation</li>)}</ul>
         </details>
         {sheet.assemblyScope && <p className="mt-2 break-words text-xs text-slate-400">Assembly occurrences: {sheet.assemblyScope.assemblyIds.join(", ")}. Scoped quantities exclude hardware allowances. Reused sheets compare existing panel layouts; manufacturing interchangeability remains unassessed.</p>}
-        {document.manufacturing && <ManufacturingSchedule rows={document.manufacturing.rows} syntheticExample={document.manufacturing.syntheticExample} onSelect={id => { onSelectManufacturingPanel?.(id); setSelectedSheet(`panel:${id}`); setHandledRequest(requestedManufacturingDrawing?.serial); }} />}
+        {document.manufacturing && <ManufacturingSchedule properties={document.manufacturing.properties} source={result} rows={document.manufacturing.rows} syntheticExample={document.manufacturing.syntheticExample} onSelect={id => { onSelectManufacturingPanel?.(id); setSelectedSheet(`panel:${id}`); setHandledRequest(requestedManufacturingDrawing?.serial); }} />}
         <label className="mt-4 block text-sm">Drawing sheet<select aria-label="Drawing sheet" className="ml-3 max-w-full rounded-lg border border-white/20 bg-slate-900 p-2" value={sheet.id} onChange={e => { setSelectedSheet(e.target.value); setHandledRequest(requestedManufacturingDrawing?.serial); }}>{document.sheets.map(s => <option key={s.id} value={s.id}>{s.metadata.number}/{s.metadata.total} · {s.id} · {s.metadata.subject}</option>)}</select></label>
         <div className="mt-4 overflow-auto rounded-lg bg-slate-200 p-2 sm:p-4"><div className="min-w-[720px]"><SheetPreview document={document} sheet={sheet} /></div></div>
         <p className="mt-2 text-xs text-slate-400">Scroll the sheet horizontally on small screens. Drawings use parallel projections of source panels and explicit presentation translations. {document.gaPlan.visibility.isometricMode === "diagnostic-wireframe" ? "Diagnostic isometric wireframe includes hidden edges." : "Isometric hidden edges are removed against solid panels."} PDF: print at Actual size / 100%; browser scaling changes physical print scale.</p>

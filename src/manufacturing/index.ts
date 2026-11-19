@@ -6,5 +6,13 @@ export { validatePanelManufacturingDocument, assertPanelManufacturingDocument } 
 export { resolvePanelManufacturing, validatePanelManufacturingPlan } from "./variants";
 export { panelPropertyDraft, applyPanelPropertyDraft, rebasePanelManufacturing, syntheticPanelExample, parsePanelPropertyStorage, panelPresentationFingerprint } from "./editing";
 export type { PanelPropertyDraft } from "./editing";
-export { createManufacturingSchedule, panelPropertyNotes, propertyText, MANUFACTURING_COLUMNS } from "./schedule";
+export { createManufacturingSchedule, panelPropertyNotes, compactPanelPropertyNotes, propertyText, MANUFACTURING_COLUMNS } from "./schedule";
 export type { ManufacturingScheduleRow } from "./schedule";
+export { groupManufacturingSchedule } from "./schedule";
+export type { ManufacturingScheduleGroup } from "./schedule";
+export { panelFaceView, PANEL_SIDES } from "./panelView";
+export type { PanelSide, PanelViewRotation } from "./panelView";
+export { emptyEdgeTreatment, parseEdgeTreatmentPresets, reviewPanelPropertyEdit, applyReviewedPanelPropertyEdit } from "./workflow";
+export type { EdgeTreatmentPreset, PanelEditReview } from "./workflow";
+export * from "./catalogue";
+export * from "./catalogueEditing";

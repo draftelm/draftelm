@@ -3,11 +3,14 @@ import type { ManufacturingGroup, PanelManufacturingDocument, PanelManufacturing
 import { compareManufacturingText, manufacturingFingerprint } from "./canonical";
 import { createPanelTopology, EDGE_KEYS, FACE_KEYS, panelEdgeId, panelFaceId } from "./topology";
 import { assertPanelManufacturingDocument, validatePanelManufacturingDocument } from "./validation";
+import { catalogueEntrySubject } from "./catalogue";
+import type { CatalogueReference } from "./catalogue";
 
 function fullyVerified(value: unknown): boolean {
   if (Array.isArray(value)) return value.every(fullyVerified);
   if (!value || typeof value !== "object") return true;
   const v = value as Record<string, unknown>;
+  if (["edge-band", "lipping", "other"].includes(String(v.kind)) && !v.specificationId) return false;
   if ("status" in v) return v.status === "verified" && fullyVerified(v.value);
   return Object.entries(v).filter(([key]) => key !== "verification").every(([, child]) => fullyVerified(child));
 }
@@ -21,6 +24,10 @@ function content(value: unknown): unknown {
   }
   if (value && typeof value === "object") {
     const v = value as Record<string, unknown>;
+    if ("catalogueId" in v && "fingerprint" in v && "entry" in v) {
+      const ref = value as CatalogueReference, definition = ref.entry.specification;
+      return { catalogueId: ref.catalogueId, definitionFingerprint: definition.status === "unassigned" ? null : catalogueEntrySubject(ref.entry, definition.value), entry: content(ref.entry) };
+    }
     if ("status" in v) return { status: v.status, ...(v.status === "unassigned" ? {} : { value: content(v.value) }) };
     return Object.fromEntries(Object.entries(v).map(([key, child]) => [key, content(child)]));
   }

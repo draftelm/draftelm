@@ -58,7 +58,7 @@ test("bulk proposals apply only to explicit occurrence IDs and invalid scopes/sp
   assert.deepEqual(edited.panels.filter(p => p.grain.status !== "unassigned").map(p => p.componentId).sort(), [...ids].sort());
   assert.equal(manufacturingFingerprint(properties), before);
   for (const bad of [[], [panelId, panelId], ["not-a-panel"]]) assert.throws(() => applyPanelPropertyDraft(properties, result, bad, draft));
-  draft.edges["u-min"].kind = "edge-band"; assert.throws(() => applyPanelPropertyDraft(properties, result, [panelId], draft));
+  draft.edges["u-min"].kind = "edge-band"; const generic = applyPanelPropertyDraft(properties, result, [panelId], draft); assert(validatePanelManufacturingDocument(generic, result).diagnostics.some(d => d.path?.endsWith("/specificationId") && d.code === "unresolved-property"));
   draft.edges["u-min"].specificationId = "EXPLICIT"; draft.edges["u-min"].thickness = "-1"; assert.throws(() => applyPanelPropertyDraft(properties, result, [panelId], draft));
   assert.equal(manufacturingFingerprint(properties), before);
 });

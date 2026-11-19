@@ -155,3 +155,11 @@ Temporary validation logs and browser/PDF artifacts are named `/private/tmp/draf
 ## Phase 5D.2 visible integration
 
 [Visible panel manufacturing properties](visible-panel-manufacturing-properties.md) now connects this schema to an occurrence editor, explicit bulk proposals, local Save/Load, opt-in synthetic examples, geometry review/rebinding, MP/MN occurrence drawings and the ten-field MS schedule. The earlier sections describe the Phase 5D.1 data-only boundary; the current application supplies an additional validated manufacturing input while legacy drawing API calls retain their prior output. No verification or release approval is added by the UI.
+
+## Phase 5D.3 workshop workflow
+
+[Simplified manufacturing workflow](simplified-manufacturing-workflow.md) adds Basic/Advanced modes, a physical-edge-linked face diagram, provisional generic treatments with an explicitly unresolved optional specification reference, guarded bulk review, conservative expandable schedule groups and configurable compact/detailed output. Existing string specification references and source-bound documents remain compatible; missing treatment references never establish verified variant equivalence. No engineering geometry or release authority changes.
+
+## Phase 5D.4 versioned libraries
+
+[Manufacturing libraries and drawing integration](manufacturing-libraries-drawing-integration.md) adds typed project/company material, edging and finish definitions, immutable version/snapshot references and provisional occurrence assignment. Library evidence is separate from engineering verification. Matching registration is now explicitly editable; source-bound reference views and compact schedule aliases preserve physical identities, stock/finished-variant separation and false release readiness.

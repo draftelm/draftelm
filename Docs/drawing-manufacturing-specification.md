@@ -197,3 +197,11 @@ This specification establishes a staged target, not a claim that any of these op
 ## Phase 5D.2 visible property slice
 
 [Visible panel manufacturing properties](visible-panel-manufacturing-properties.md) implements a provisional occurrence editor, physical face/edge maps, directional grain/treatment symbols, property continuations and ten-field source-bound manufacturing schedules. The current application has a 17-page reference A3 package; legacy API calls without manufacturing input retain 12 pages. All 29 panel occurrences, 87 nominal measurements, 26 functional relationships, original BOM and false manufacturing/compliance/purchasing safeguards remain intact. Assigned property references are proposals, not approved materials/processes, calculated finished dimensions or manufacturing release data.
+
+## Phase 5D.3 workflow update
+
+[Simplified manufacturing workflow](simplified-manufacturing-workflow.md) supplies workshop-facing face/edge editing, explicit bulk review, verified-variant display grouping and profile-controlled compact property output. The new-session application reference package is 16 A3 pages; older profile/API behaviour remains compatible. Hiding sheets preserves bound metadata and validation. No finished-size rules, manufacturing approval or standards compliance is inferred.
+
+## Phase 5D.4 library and annotation update
+
+[Manufacturing libraries and drawing integration](manufacturing-libraries-drawing-integration.md) supplies version-pinned, manufacturer-neutral definitions with provisional occurrence assignment, physical grain/face/edge drawing keys, explicit matching notes and compact ten-field schedule references to shared LC legends. Presentation transforms do not change engineering geometry or controlling measurements. All quantities, unknowns, source bindings and false release/purchasing safeguards remain authoritative; neither catalogue evidence nor drawing appearance grants manufacturing approval.

@@ -27,6 +27,8 @@ export interface DrawingProfile {
     functionalPresentation?: "contextual" | "isolated-edges";
     /** Generated binding: a manufacturing input is required at render/export. */
     panelManufacturing?: boolean;
+    /** Optional: absence preserves Phase 5D.2 saved-profile output. */
+    manufacturingOutput?: { propertyDrawings: boolean; detailedTables: boolean; schedule: boolean; panelScope: "selected" | "selected-and-edited"; keyedAnnotations?: boolean; catalogueLegend?: boolean };
   };
   titleBlock: { projectName: string; companyName?: string; additionalFields: TitleBlockField[] };
   numbering: { prefix: string; revision: string; scheme: "by-sheet-kind" | "sequential"; startAt: number };
@@ -84,6 +86,10 @@ export interface DrawingViewport {
   sectionMarkers?: import("./planning/sectionTypes").SectionReferenceMarker[];
   manufacturingComponentId?: string;
   manufacturingInk?: PlotEntity[];
+  manufacturingFaceView?: import("./manufacturingAnnotations").ManufacturingFaceView;
+  keyedManufacturingAnnotations?: boolean;
+  /** Fixed printed-size notes; currently used by compact property maps. */
+  noteTextSizeMm?: 2.5;
   referenceLabels?: { sourceId: string; text: string; at: Point2; references: ComponentReference[] }[];
 }
 export interface SheetMetadata {

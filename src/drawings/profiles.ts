@@ -61,9 +61,11 @@ export function parseDrawingProfile(value: unknown): { profile: DrawingProfile |
   if (!keys(s, ["format", "projectionConvention", "isometricMode"]) || !record(s) || !choice(s.format, ["A4", "A3", "A2", "A1"]) || !choice(s.projectionConvention, ["first-angle", "third-angle"]) ||
     (s.isometricMode !== undefined && !choice(s.isometricMode, ["visible-edges", "diagnostic-wireframe"]))) issues.push("Unsupported sheet size, projection or isometric mode.");
   const c = v.contents;
-  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule", ...(current ? ["assemblySheets", "functionalDimensions", "contextualSections", "functionalPresentation", "panelManufacturing"] : [])]) || !record(c)) issues.push("Invalid drawing contents.");
+  if (!keys(c, ["assemblyViews", "componentDrawings", "cuttingList", "hardwareSchedule", ...(current ? ["assemblySheets", "functionalDimensions", "contextualSections", "functionalPresentation", "panelManufacturing", "manufacturingOutput"] : [])]) || !record(c)) issues.push("Invalid drawing contents.");
   else {
     const assembly = c.assemblySheets;
+    const output = c.manufacturingOutput;
+    if (output !== undefined && (!keys(output, ["propertyDrawings", "detailedTables", "schedule", "panelScope", "keyedAnnotations", "catalogueLegend"]) || !record(output) || ["propertyDrawings", "detailedTables", "schedule"].some(k => typeof output[k] !== "boolean") || !choice(output.panelScope, ["selected", "selected-and-edited"]) || ["keyedAnnotations", "catalogueLegend"].some(k => output[k] !== undefined && typeof output[k] !== "boolean"))) issues.push("Invalid manufacturing output settings.");
     if (c.panelManufacturing !== undefined && typeof c.panelManufacturing !== "boolean") issues.push("Manufacturing input binding must be boolean.");
     if (c.functionalPresentation !== undefined && !choice(c.functionalPresentation, ["contextual", "isolated-edges"])) issues.push("Unsupported functional dimension presentation.");
     if (c.contextualSections !== undefined && typeof c.contextualSections !== "boolean") issues.push("Contextual section visibility must be boolean.");

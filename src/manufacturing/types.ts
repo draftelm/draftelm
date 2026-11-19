@@ -30,6 +30,7 @@ export type ManufacturingProperty<T> =
   | { status: "verified"; value: T; verification: PropertyVerification };
 export interface ManufacturerCode { manufacturerId: string; code: string }
 export interface MaterialSpecification {
+  catalogue?: import("./catalogue").CatalogueReference;
   stockMaterialId: string;
   description?: string;
   /** Null means explicitly not applicable; unassigned never establishes equivalence. */
@@ -38,11 +39,15 @@ export interface MaterialSpecification {
 export interface ProcessMetadata { specificationId: string; notes: string[] }
 export type SurfaceFinish = { kind: "none" } | {
   kind: "specified"; specificationId: string; manufacturerCodes: ManufacturerCode[];
+  catalogue?: import("./catalogue").CatalogueReference;
   appearance: ManufacturingProperty<string | null>;
   process: ManufacturingProperty<ProcessMetadata | null>;
 };
 export type EdgeTreatment = { kind: "none" } | {
-  kind: "edge-band" | "lipping" | "other"; specificationId: string;
+  kind: "edge-band" | "lipping" | "other";
+  /** Omitted for an incomplete generic proposal; never an approved specification. */
+  specificationId?: string;
+  catalogue?: import("./catalogue").CatalogueReference;
   material: ManufacturingProperty<MaterialSpecification | null>;
   nominalThicknessMm: ManufacturingProperty<number | null>;
   appearance: ManufacturingProperty<string | null>;

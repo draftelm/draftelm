@@ -41,7 +41,7 @@ export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotE
     for (const d of view.dimensions) out.push(...plotDimension(view, d));
     for (const label of view.referenceLabels ?? []) out.push({ kind: "text", size: 2.5, ...label });
     // Reserved note bands participate in geometry fitting; no text is truncated.
-    notes.forEach((note, i) => out.push({ kind: "text", at: { x: view.frame.x + 3, y: view.frame.y + view.frame.height - 3 - (notes.length - 1 - i) * 2.8 }, size: DRAWING_TEXT.note, ...note, ...(document.manufacturing && !view.manufacturingComponentId && view.projection === "panel-face" && note.text === "Nominal blank; grain and edge treatment unspecified." ? { text: "Nominal blank only; see MP/MN occurrence properties." } : {}) }));
+    notes.forEach((note, i) => out.push({ kind: "text", at: { x: view.frame.x + 3, y: view.frame.y + view.frame.height - 3 - (notes.length - 1 - i) * 2.8 }, size: view.noteTextSizeMm ?? DRAWING_TEXT.note, ...note, ...(document.manufacturing && !view.manufacturingComponentId && view.projection === "panel-face" && note.text === "Nominal blank; grain and edge treatment unspecified." ? { text: "Nominal blank; bound panel properties are separate." } : {}) }));
   }
   if (sheet.manufacturingTable) out.push(...plotManufacturingTable(sheet.manufacturingTable));
   if (sheet.table) {
@@ -62,8 +62,8 @@ export function plotSheet(document: DrawingDocument, sheet: DrawingSheet): PlotE
       });
       y += height;
     };
-    row(table.columns.map(c => wrapDrawingText(c.label, c.width - 4, table.fontSize)), table.headerHeight, true, sheet.id.startsWith("MS-") ? "manufacturing-schedule:header" : undefined);
-    for (const fragment of table.rows) row(fragment.cells, fragment.height, false, sheet.id.startsWith("MS-") ? fragment.bomId : undefined);
+    row(table.columns.map(c => wrapDrawingText(c.label, c.width - 4, table.fontSize)), table.headerHeight, true, (sheet.id.startsWith("MS-") || sheet.id.startsWith("LC-")) ? "manufacturing-schedule:header" : undefined);
+    for (const fragment of table.rows) row(fragment.cells, fragment.height, false, (sheet.id.startsWith("MS-") || sheet.id.startsWith("LC-")) ? fragment.bomId : undefined);
     sheetSourceId = undefined;
     sheetRole = "title-block";
   }

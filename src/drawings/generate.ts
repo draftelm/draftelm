@@ -27,9 +27,10 @@ import { buildFunctionalContextSheets, functionalContextPresentation as presentF
 
 import { assessComposition } from "./composition";
 
-import { buildManufacturingPanelSheets, manufacturingScheduleTables } from "./manufacturing";
+import { buildManufacturingPanelSheets, buildCatalogueLegendSheets, manufacturingScheduleTables } from "./manufacturing";
 import type { ManufacturingDrawingInput } from "./manufacturing";
 import { createManufacturingSchedule, resolvePanelManufacturing } from "../manufacturing";
+import { manufacturingOutput } from "./manufacturingOutput";
 
 export const FORMAL_TEMPLATE_LABEL = "BS 8888 / ISO-style — compliance not yet verified";
 export const SHEET_FORMATS: Record<SheetFormat, { width: number; height: number }> = { A4: { width: 297, height: 210 }, A3: { width: 420, height: 297 }, A2: { width: 594, height: 420 }, A1: { width: 841, height: 594 } };
@@ -110,7 +111,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
     if (!reconciliation.valid) return { document: null, issues: reconciliation.issues.map(issue => issue.message) };
     const columns = Math.max(1, Math.min(3, Math.floor((page.width - 20) / 125)));
     const chunks = contents.componentDrawings ? Array.from({ length: Math.ceil(componentViews.length / columns) }, (_, i) => componentViews.slice(i * columns, (i + 1) * columns)) : [];
-    const panelTables = contents.cuttingList.include ? manufacturing ? manufacturingScheduleTables(manufacturing.rows, layoutPage) : paginateSchedule(cuttingList, layoutPage) : [];
+    const panelTables = contents.cuttingList.include ? manufacturing ? manufacturingOutput(profile).schedule ? manufacturingScheduleTables(manufacturing.rows, layoutPage) : [] : paginateSchedule(cuttingList, layoutPage) : [];
     const hardwareTables = contents.hardwareSchedule ? paginateSchedule(hardwareAllowances, layoutPage) : [];
     const assemblyViews = views.filter(view => contents.assemblyViews.includes(view.projection as Projection));
     const gaScale = [assemblyViews.some(v => v.projection === "isometric") ? `iso ${views[3].scaleLabel} primary` : "",
@@ -161,7 +162,7 @@ export function generateDrawingDocument(result: FurnitureResult, configuration: 
       componentSheet.annotations = [unplaced ? `Nominal blank dimensions: ${unplaced} placement diagnostics; see preview coverage. Thickness is normal to face.` : "Nominal blank dimensions; linked thickness is normal to face. No finished sizes or tolerances supplied."];
       sheets.push(componentSheet);
     });
-    if (manufacturing) sheets.push(...buildManufacturingPanelSheets(result, componentDimensionPlan, profile, manufacturing, sheets, layoutPage, sheet));
+    if (manufacturing) { sheets.push(...buildManufacturingPanelSheets(result, componentDimensionPlan, profile, manufacturing, sheets, layoutPage, sheet)); sheets.push(...buildCatalogueLegendSheets(profile, manufacturing.properties, layoutPage, sheet)); }
     if (contents.cuttingList.placement === "after-components") addTables(manufacturing ? "MS" : "CL", manufacturing ? "Panel manufacturing schedule - preliminary" : "Component schedule / nominal cutting list", panelTables);
     addTables("HW", "UNVERIFIED hardware allowances", hardwareTables);
     if (!sheets.length) return { document: null, issues: ["No supported sheets can be generated for the selected functional relationship scope."] };

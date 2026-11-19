@@ -33,7 +33,7 @@ export function viewportNotes(view: DrawingViewport): { text: string; sourceId?:
     ...(view.functionalDimension?.status === "placed" && view.functionalDimension.valueMm === 0 ? [{ text: "Measured 0 mm (coincident reference planes)", sourceId: view.functionalDimension.representativeDimensionId, references: view.references }] : []),
     ...(thickness ? [{ text: `Thickness ${formatDimension(thickness.valueMm)} mm (normal to face)`, sourceId: thickness.id, references: thickness.references }] : []),
     ...view.annotations.map(text => ({ text })),
-  ].flatMap(note => wrapDrawingText(note.text, view.frame.width - 6, 2).map(text => ({ ...note, text })));
+  ].flatMap(note => wrapDrawingText(note.text, view.frame.width - 6, view.noteTextSizeMm ?? 2).map(text => ({ ...note, text })));
 }
 
 export function viewportText(view: DrawingViewport) {

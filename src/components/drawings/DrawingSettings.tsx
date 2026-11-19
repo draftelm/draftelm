@@ -1,5 +1,6 @@
 import { DRAWING_PROFILE_CHOICES, FORMAL_TEMPLATE_LABEL } from "../../drawings";
 import type { DrawingProfile, Projection } from "../../drawings";
+import { manufacturingOutput } from "../../drawings/manufacturingOutput";
 
 interface Props {
   profile: DrawingProfile; baseProfileId: string; message: string;
@@ -11,6 +12,7 @@ const buttonClass = "rounded-lg border border-white/20 px-3 py-2 text-xs";
 
 export default function DrawingSettings({ profile, baseProfileId, message, onChange, onSelect, onReset, onSave, onLoad }: Props) {
   const { contents, titleBlock, numbering } = profile;
+  const output = manufacturingOutput(profile);
   const setContents = (patch: Partial<DrawingProfile["contents"]>) => onChange({ ...profile, contents: { ...contents, ...patch } });
   const setTitle = (patch: Partial<DrawingProfile["titleBlock"]>) => onChange({ ...profile, titleBlock: { ...titleBlock, ...patch } });
   const setNumbering = (patch: Partial<DrawingProfile["numbering"]>) => onChange({ ...profile, numbering: { ...numbering, ...patch } });
@@ -57,6 +59,13 @@ export default function DrawingSettings({ profile, baseProfileId, message, onCha
         <label className="flex items-center gap-2"><input type="checkbox" checked={contents.hardwareSchedule} onChange={e => setContents({ hardwareSchedule: e.target.checked })} />Unverified hardware schedule</label>
         <label>Cutting list placement<select aria-label="Cutting list placement" className="ml-2 rounded-lg border border-white/20 bg-slate-900 p-2" disabled={!contents.cuttingList.include} value={contents.cuttingList.placement} onChange={e => setContents({ cuttingList: { ...contents.cuttingList, placement: e.target.value as "before-components" | "after-components" } })}><option value="after-components">After component drawings</option><option value="before-components">Before component drawings</option></select></label>
       </div>
+      <details className="mt-3 rounded-lg border border-white/10 p-3 text-sm">
+        <summary className="cursor-pointer">Panel property output</summary>
+        <p className="mt-2 text-xs text-slate-400">Hidden sheets keep their source properties and validation. Compact notes are the workshop default; continuations are added only when needed for readability.</p>
+        <div className="mt-3 flex flex-wrap gap-4">{([['propertyDrawings', 'Panel property drawings'], ['detailedTables', 'Detailed panel property tables'], ['schedule', 'Printed manufacturing schedule'], ['keyedAnnotations', 'Grain, face and edging drawing keys'], ['catalogueLegend', 'Referenced library definitions']] as const).map(([key, label]) => <label key={key} className="flex items-center gap-2"><input aria-label={label} type="checkbox" checked={!!output[key]} onChange={e => setContents({ manufacturingOutput: { ...output, [key]: e.target.checked } })} />{label}</label>)}</div>
+        <label className="mt-3 block">Panel drawing scope<select aria-label="Panel property drawing scope" className={inputClass} value={output.panelScope} onChange={e => setContents({ manufacturingOutput: { ...output, panelScope: e.target.value as typeof output.panelScope } })}><option value="selected">Selected panel only</option><option value="selected-and-edited">Selected and all edited panels</option></select></label>
+        <p className="mt-2 text-xs text-slate-400">Property drawings/tables also require Component drawings. Printing the schedule also requires Cutting list. The live schedule remains available.</p>
+      </details>
       <details className="mt-3 text-sm">
         <summary className="cursor-pointer">Title block and numbering</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

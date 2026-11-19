@@ -4,6 +4,7 @@ import { manufacturingFingerprint } from "./canonical";
 import { EDGE_KEYS, FACE_KEYS, createPanelTopology, panelEdgeId, panelFaceId } from "./topology";
 import { assertManufacturingSource, manufacturingSourceSnapshot, panelSourceSnapshot } from "./source";
 import { propertySubjectFingerprint } from "./properties";
+import { catalogueValueIssues } from "./catalogue";
 
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v) && Object.getPrototypeOf(v) === Object.prototype;
 const keys = (v: unknown, required: string[], optional: string[] = []): v is Record<string, unknown> => object(v) && required.every(k => Object.prototype.hasOwnProperty.call(v, k)) && Object.keys(v).every(k => [...required, ...optional].includes(k));
@@ -12,7 +13,7 @@ const finite = (v: unknown): v is number => typeof v === "number" && Number.isFi
 const list = (v: unknown, check: (item: unknown) => boolean): v is unknown[] => Array.isArray(v) && v.every(check);
 const unique = (values: unknown[]) => new Set(values).size === values.length;
 const codes = (v: unknown) => list(v, x => keys(x, ["manufacturerId", "code"]) && text(x.manufacturerId) && text(x.code)) && unique((v as { manufacturerId: string }[]).map(x => x.manufacturerId));
-const materialShape = (v: unknown): v is Record<string, unknown> => keys(v, ["stockMaterialId", "manufacturerCodes", "grade"], ["description"]) && text(v.stockMaterialId) && codes(v.manufacturerCodes) && (v.description === undefined || text(v.description));
+const materialShape = (v: unknown): v is Record<string, unknown> => keys(v, ["stockMaterialId", "manufacturerCodes", "grade"], ["description", "catalogue"]) && text(v.stockMaterialId) && codes(v.manufacturerCodes) && (v.description === undefined || text(v.description));
 const process = (v: unknown) => keys(v, ["specificationId", "notes"]) && text(v.specificationId) && list(v.notes, text);
 const grain = (v: unknown) => keys(v, ["direction"]) && v.direction === "non-directional" || keys(v, ["direction", "sense"]) && ["longitudinal", "transverse"].includes(String(v.direction)) && ["either", "positive", "negative"].includes(String(v.sense));
 const stock = (v: unknown) => keys(v, ["kind"]) && v.kind === "non-directional" || keys(v, ["kind", "along", "reversalAllowed"]) && v.kind === "directional" && ["u", "v"].includes(String(v.along)) && typeof v.reversalAllowed === "boolean";
@@ -35,6 +36,7 @@ export function validatePanelManufacturingDocument(input: unknown, source: Furni
   const panels = source.components.filter((c): c is PanelComponent => c.kind === "panel");
   const ids = input.panels.map(p => object(p) ? p.componentId : undefined);
   if (ids.length !== panels.length || !unique(ids) || panels.some(p => !ids.includes(p.id))) add("invalid-reference", "error", "Every physical panel must have exactly one manufacturing property record; hardware and unknown IDs are not panel occurrences.");
+  const catalogueVersions = new Map<string, string>();
   const matchingGroups = new Map<string, { componentId: string; sequence: number }[]>();
   for (const raw of input.panels) {
     const p = panels.find(p => object(raw) && p.id === raw.componentId);
@@ -62,16 +64,23 @@ export function validatePanelManufacturingDocument(input: unknown, source: Furni
       }
       return true;
     };
-    const material = (v: unknown, path: string): boolean => materialShape(v) && field(v.grade, `${path}/grade`, x => x === null || text(x));
+    const catalogue = (v: unknown, kind: "material" | "edge-treatment" | "finish", path: string) => {
+      const issues = catalogueValueIssues(v as Parameters<typeof catalogueValueIssues>[0], kind, path === "material" ? p.thickness : undefined, path === "material" ? record.stockOrientation : undefined);
+      const ref = (v as { catalogue?: import("./catalogue").CatalogueReference }).catalogue;
+      if (!issues.length && ref) { const key = manufacturingFingerprint([ref.catalogueId, ref.entry.owner, ref.entry.id, ref.entry.version]); if (catalogueVersions.has(key) && catalogueVersions.get(key) !== ref.fingerprint) issues.push("Conflicting definitions share the same catalogue identity/version."); catalogueVersions.set(key, ref.fingerprint); if (ref.entry.specification.status === "provisional") add("provisional-property", "warning", "Pinned library definition is provisional; supplied catalogue data is not panel approval.", id, `${path}/catalogue`); }
+      issues.forEach(message => add("invalid-reference", "error", message, id, `${path}/catalogue`)); return !issues.length;
+    };
+    const material = (v: unknown, path: string): boolean => materialShape(v) && field(v.grade, `${path}/grade`, x => x === null || text(x)) && catalogue(v, "material", path);
     const finish = (v: unknown, path: string): boolean => {
       if (keys(v, ["kind"]) && v.kind === "none") return true;
-      return keys(v, ["kind", "specificationId", "manufacturerCodes", "appearance", "process"]) && v.kind === "specified" && text(v.specificationId) && codes(v.manufacturerCodes) && field(v.appearance, `${path}/appearance`, x => x === null || text(x)) && field(v.process, `${path}/process`, x => x === null || process(x));
+      return keys(v, ["kind", "specificationId", "manufacturerCodes", "appearance", "process"], ["catalogue"]) && v.kind === "specified" && text(v.specificationId) && codes(v.manufacturerCodes) && field(v.appearance, `${path}/appearance`, x => x === null || text(x)) && field(v.process, `${path}/process`, x => x === null || process(x)) && catalogue(v, "finish", path);
     };
     const treatment = (v: unknown, path: string): boolean => {
       if (keys(v, ["kind"]) && v.kind === "none") return true;
-      return keys(v, ["kind", "specificationId", "material", "nominalThicknessMm", "appearance", "process"]) && ["edge-band", "lipping", "other"].includes(String(v.kind)) && text(v.specificationId) &&
+      if (object(v) && v.specificationId === undefined) add("unresolved-property", "warning", "Treatment specification/code: Not specified. Generic treatment is incomplete.", id, `${path}/specificationId`);
+      return keys(v, ["kind", "material", "nominalThicknessMm", "appearance", "process"], ["specificationId", "catalogue"]) && ["edge-band", "lipping", "other"].includes(String(v.kind)) && (v.specificationId === undefined || text(v.specificationId)) &&
         field(v.material, `${path}/material`, (x, childPath) => x === null || material(x, childPath)) && field(v.nominalThicknessMm, `${path}/nominalThicknessMm`, x => x === null ? v.kind === "other" : finite(x) && x > 0) &&
-        field(v.appearance, `${path}/appearance`, x => x === null || text(x)) && field(v.process, `${path}/process`, x => x === null || process(x));
+        field(v.appearance, `${path}/appearance`, x => x === null || text(x)) && field(v.process, `${path}/process`, x => x === null || process(x)) && catalogue(v, "edge-treatment", path);
     };
     const matOk = field(record.material, "material", material);
     field(record.stockOrientation, "stockOrientation", stock); field(record.grain, "grain", grain); field(record.grainMatching, "grainMatching", matching); field(record.otherRequirements, "otherRequirements", other);

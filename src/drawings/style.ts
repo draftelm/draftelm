@@ -2,7 +2,7 @@ import type { DrawingProfile, PlotEntity } from "./types";
 
 /** Paper millimetres. Candidate company conventions, not verified normative
  * requirements. The same resolved primitives feed browser SVG and vector PDF. */
-export const STROKE_ROLES = ["visible-outline", "visible-internal", "section-cut", "hidden", "centre", "cutting-plane", "dimension", "extension", "leader", "balloon", "hatch", "border", "title-block", "table", "detail-boundary"] as const;
+export const STROKE_ROLES = ["visible-outline", "visible-internal", "section-cut", "hidden", "centre", "cutting-plane", "dimension", "extension", "leader", "balloon", "hatch", "border", "title-block", "table", "detail-boundary", "grain", "edge-treatment"] as const;
 export type StrokeRole = typeof STROKE_ROLES[number];
 export interface DrawingStyle {
   strokes: Record<StrokeRole, { width: number; dash?: number[] }>;
@@ -16,6 +16,7 @@ export function resolveDrawingStyle(profile: Pick<DrawingProfile, "template" | "
     hidden: { width: 0.18, dash: [3, 1.5] }, centre: { width: 0.18, dash: [8, 1.5, 1, 1.5] },
     "cutting-plane": { width: 0.35, dash: [10, 2, 1, 2] },
     dimension: { width: 0.18 }, extension: { width: 0.18 }, leader: { width: 0.18 },
+    grain: { width: 0.25 }, "edge-treatment": { width: 0.5 },
     balloon: { width: 0.25 }, hatch: { width: 0.13 }, border: { width: 0.35 },
     "title-block": { width: 0.25 }, table: { width: 0.18 }, "detail-boundary": { width: 0.18, dash: [2.5, 1.5] },
   };

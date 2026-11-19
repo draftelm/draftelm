@@ -562,3 +562,11 @@ Phase 5A recommends the boundaries and first slice; it does not settle those eng
 ## Implemented Phase 5D.2 slice
 
 [Visible manufacturing properties](visible-panel-manufacturing-properties.md) connects the separate manufacturing domain to the furniture workflow, guarded local draft storage, explicit geometry review, occurrence-specific reference drawings and one live/vector-PDF ten-field schedule dataset. Shared render/export validation pins this additional input and reconstructs MP/MN/MS output. Nominal CP drawings and their scales remain unchanged; source dimensions/BOM are not replaced by presentation values. Authenticated approval, finished-size engineering, advanced matching/process editing and company part registry remain deferred.
+
+## Implemented Phase 5D.3 slice
+
+[Simplified manufacturing workflow](simplified-manufacturing-workflow.md) adds a pure topology-to-display face/edge mapper, local reusable provisional edging presets, exact document/draft/scope-bound bulk review and a conservative variant display partition over the unchanged occurrence dataset. Optional profile output settings select compact notes, full tables and schedules while shared reconstruction validation preserves source properties and original geometry/dimension/BOM authority. Company catalogue governance, feature/process engineering and trusted release authority remain separate future boundaries.
+
+## Implemented Phase 5D.4 slice
+
+[Manufacturing libraries and drawing integration](manufacturing-libraries-drawing-integration.md) adds a versioned local catalogue boundary, independent catalogue evidence, occurrence-pinned snapshots, guarded staging/application and conservative variant normalization. A face-basis adapter transforms only manufacturing reference views; source-linked grain/face/edge primitives and LC/MS projections share render/export validation. Company ownership authentication, controlled external definitions, full process/feature engineering and release authority remain future boundaries.
