@@ -11,6 +11,8 @@ import ViewerBoundary from "./ViewerBoundary";
 import DrawerControls from "./DrawerControls";
 import ExplosionControls from "./ExplosionControls";
 import PanelManufacturingEditor from "./PanelManufacturingEditor";
+import WorkspaceTabs from "./WorkspaceTabs";
+import ConfirmProjectAction from "./ConfirmProjectAction";
 import type { ExplosionMode } from "./explosion";
 import { clampDemoTravel, clampOpening, DEFAULT_DEMO_TRAVEL_MM, drawerSelection, groupDrawerPanels, reconcileDrawerPositions, resetDrawerPositions, setDrawerOpening } from "./drawerMotion";
 import type { DrawerPositions } from "./drawerMotion";
@@ -27,8 +29,12 @@ const FIELDS = [
 const numeric = (value: string) => value.trim() === "" ? NaN : Number(value);
 
 export default function FurniturePreview() {
+  const [workspace, setWorkspace] = useState<"design" | "manufacturing">("design");
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [pendingPanels, setPendingPanels] = useState(0);
+  const reportPending = useCallback((count: number) => setPendingPanels(count), []);
   const [inputs, setInputs] = useState(DEFAULT_INPUTS);
-  const [requestedSelection, setRequestedSelection] = useState<PanelSelection>({ ids: [], activeId: null });
+  const [requestedSelection, setRequestedSelection] = useState<PanelSelection>({ ids: ["chest/drawer-1/front"], activeId: "chest/drawer-1/front" });
   const [visible, setVisible] = useState(ALL_LAYERS);
   const [resetKey, setResetKey] = useState(0);
   const [drawerPositions, setDrawerPositions] = useState<DrawerPositions>({});
@@ -47,7 +53,7 @@ export default function FurniturePreview() {
   }, [inputs]);
   const selection = selectPanels(requestedSelection.ids, model.panels, requestedSelection.activeId);
   const drawers = useMemo(() => groupDrawerPanels(result.assemblies, model), [result.assemblies, model]);
-  const positions = reconcileDrawerPositions(drawers, drawerPositions);
+  const positions = useMemo(() => reconcileDrawerPositions(drawers, drawerPositions), [drawers, drawerPositions]);
   const motionSelection = drawerSelection(drawers, selection.ids);
   const maximumMm = clampDemoTravel(numeric(travelInput));
   const parentDrawer = drawers.find(d => d.panels.some(p => p.component.id === selection.activeId));
@@ -81,25 +87,34 @@ export default function FurniturePreview() {
   function reset() {
     setInputs(DEFAULT_INPUTS); setVisible(ALL_LAYERS);
     clearVisualState(); setExplosionMode("assembly"); setTravelInput(String(DEFAULT_DEMO_TRAVEL_MM));
-    setRequestedSelection({ ids: [], activeId: null }); setResetKey(k => k + 1);
+    setRequestedSelection({ ids: ["chest/drawer-1/front"], activeId: "chest/drawer-1/front" }); setResetKey(k => k + 1);
   }
   return (
     <div className="mx-auto max-w-[1600px] px-4 pb-12 sm:px-8">
       <header className="mb-6 mt-8 flex flex-wrap items-start justify-between gap-4">
-        <div><p className="text-sm text-blue-200">Furniture engineering · Phase 5B.1</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Chest of drawers</h1><p className="mt-2 text-sm text-slate-400">Parametric assembly · millimetres · single drawer column</p></div>
+        <div><p className="text-sm tracking-wide text-blue-200">DRAFTELM / Furniture project</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">Chest of drawers</h1><p className="mt-2 text-sm text-slate-400">One project · single drawer column · millimetres</p></div>
         <div className="max-w-md rounded-xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100"><strong>Preliminary design — not manufacturing-ready</strong><p className="mt-1 text-amber-100/75">Materials, hardware, fixings, loads and stability remain unverified.</p></div>
       </header>
+      <div className="mb-6 rounded-2xl border border-white/10 bg-slate-900/70 p-3">
+        <WorkspaceTabs id="furniture-workspace" label="Furniture workspaces" value={workspace} onChange={setWorkspace} items={[{ id: "design", label: "Design", hint: "Size, arrangement and inspection" }, { id: "manufacturing", label: "Manufacturing", hint: "Panel requirements, schedules and drawings" }]} />
+        <p role="status" className="mt-3 px-1 text-xs text-slate-400">{pendingPanels ? `${pendingPanels} panel draft${pendingPanels === 1 ? "" : "s"} retained in this session. Apply in Manufacturing to update the project; drafts are not saved locally.` : "Design and Manufacturing share the same panels and engineering model. Local saves are explicit."}</p>
+      </div>
+      {errors.length > 0 && <section role="alert" className="mb-5 rounded-xl border border-red-400/30 bg-red-400/10 p-5"><h2 className="font-medium text-red-200">Parameters need attention</h2><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-100">{errors.map((issue, i) => <li key={`${issue.code}-${i}`}>{issue.message}</li>)}</ul><p className="mt-3 text-sm text-red-100">Preview, BOM and export are withheld. Correct the Design inputs. Manufacturing drafts remain in this session.</p></section>}
+      <div role="tabpanel" id="furniture-workspace-panel-design" aria-labelledby="furniture-workspace-tab-design" hidden={workspace !== "design"}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-medium">Shape your cabinet</h2><p className="mt-1 text-sm text-slate-400">Set the carcass size, then inspect the assembly.</p></div><button type="button" className="rounded-lg bg-blue-600 px-4 py-2 text-sm" onClick={() => { setWorkspace("manufacturing"); document.getElementById("furniture-workspace-tab-manufacturing")?.focus(); }}>Set up manufacturing</button></div>
       <div className="grid items-start gap-5 xl:grid-cols-[240px_minmax(0,1fr)_300px]">
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5" aria-label="Furniture parameters">
           <h2 className="text-lg font-medium">Dimensions</h2>
           <div className="mt-4 grid grid-cols-2 gap-4 xl:grid-cols-1">{FIELDS.map(field => (
             <label key={field.key} className="block text-sm" htmlFor={`furniture-${field.key}`}>
               {field.label} <span className="text-slate-400">({field.unit})</span>
-              <input id={`furniture-${field.key}`} type="number" min="1" step="1" value={inputs[field.key]} aria-invalid={errors.length > 0} className="mt-2 w-full rounded-lg border border-white/20 bg-slate-900 px-3 py-2 text-white outline-offset-2" onChange={event => { setInputs(current => ({ ...current, [field.key]: event.target.value })); setRequestedSelection({ ids: [], activeId: null }); clearVisualState(); }} />
+              <input id={`furniture-${field.key}`} type="number" min="1" step="1" value={inputs[field.key]} aria-invalid={errors.length > 0} className="mt-2 w-full rounded-lg border border-white/20 bg-slate-900 px-3 py-2 text-white outline-offset-2" onChange={event => { setInputs(current => ({ ...current, [field.key]: event.target.value })); clearVisualState(); }} />
             </label>
           ))}</div>
           <p className="mt-4 text-xs leading-relaxed text-slate-400">Four drawers is the default. Other counts must pass engine validation with the current box height and hardware settings. Parts are never silently resized.</p>
-          <button type="button" onClick={reset} className="mt-5 w-full rounded-lg border border-white/20 px-3 py-2 text-sm hover:bg-white/10">Reset specification</button>
+          <p className="mt-3 text-xs text-slate-400">Depth is the carcass. The reference&apos;s closed fronts project another 18 mm. Changing design inputs may require manufacturing review.</p>
+          <button type="button" onClick={() => setConfirmReset(true)} className="mt-5 w-full rounded-lg border border-white/20 px-3 py-2 text-sm hover:bg-white/10">Reset design to reference</button>
+          <details className="mt-5 text-sm"><summary className="cursor-pointer">Panel visibility</summary>
           <fieldset className="mt-6 border-t border-white/10 pt-4">
             <legend className="px-1 text-sm font-medium">Visible panels</legend>
             {(Object.keys(PANEL_STYLES) as PanelRole[]).map(role => (
@@ -107,6 +122,7 @@ export default function FurniturePreview() {
             ))}
           </fieldset>
           <p className="mt-4 text-xs leading-relaxed text-slate-400">Hide outer panels to inspect the boxes. Layer visibility does not change the engineering specification or BOM.</p>
+          </details>
         </section>
         <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#101b2b]" aria-label="Interactive furniture model">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-sm"><span aria-live="polite">{model.error ? "Preview unavailable" : `${model.panels.length} physical panels`}</span><button type="button" disabled={!!model.error} className="rounded border border-white/20 px-3 py-1 disabled:opacity-40" onClick={() => setResetKey(k => k + 1)}>Reset view</button></div>
@@ -117,12 +133,17 @@ export default function FurniturePreview() {
         </section>
         <ComponentInspector model={model} result={result} specification={specification} selection={selection} highlightedCount={motionSelection.highlightedIds.length} parentDrawerName={parentDrawer?.name} onSelect={onSelect} />
       </div>
+      <details className="mt-5 rounded-2xl border border-white/10 p-4"><summary className="cursor-pointer text-sm font-medium">Inspect movement & exploded assembly</summary>
       <ExplosionControls mode={explosionMode} amount={explosionAmount} disabled={!!model.error} busy={explosionAmount > 0 || explosionBusy} onMode={setExplosionMode} onAmount={changeExplosion} onReset={() => changeExplosion(0)} />
       <DrawerControls suspended={explosionAmount > 0 || explosionBusy} drawers={drawers} positions={positions} selectedIds={motionSelection.drawerIds} travelInput={travelInput} visible={visible} onSelect={selectDrawer} onOpening={(id, value) => setDrawerPositions(current => setDrawerOpening(drawers, current, id, value))} onTravel={setTravelInput} onReset={() => setDrawerPositions(resetDrawerPositions(drawers))} />
-      {errors.length > 0 && <section role="alert" className="mt-5 rounded-xl border border-red-400/30 bg-red-400/10 p-5"><h2 className="font-medium text-red-200">Parameters need attention</h2><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-red-100">{errors.map((issue, i) => <li key={`${issue.code}-${i}`}>{issue.message}</li>)}</ul><p className="mt-3 text-sm text-red-100">The current preview and BOM are withheld. Adjust the values or reset the specification.</p></section>}
+      </details>
+      </div>
       <details className="mt-5 rounded-xl border border-white/10 p-4 text-sm"><summary className="cursor-pointer text-slate-300">Engineering assumptions & limitations ({assumptions.length})</summary><ul className="mt-3 list-disc space-y-2 pl-5 text-slate-400">{assumptions.map(issue => <li key={issue.code}>{issue.message}</li>)}</ul></details>
-      <PanelManufacturingEditor result={result} activeId={selection.activeId} onSelect={onSelect} />
-      <FurnitureBOM result={result} selection={selection} onSelect={onSelect} />
+      <div role="tabpanel" id="furniture-workspace-panel-manufacturing" aria-labelledby="furniture-workspace-tab-manufacturing" hidden={workspace !== "manufacturing"}>
+        <PanelManufacturingEditor result={result} activeId={selection.activeId} onSelect={onSelect} onPendingCount={reportPending} />
+        <details className="mt-5 rounded-xl border border-white/10 p-4"><summary className="cursor-pointer text-sm">Engineering components & nominal BOM</summary><FurnitureBOM result={result} selection={selection} onSelect={onSelect} /></details>
+      </div>
+      {confirmReset && <ConfirmProjectAction action={{ title: "Reset design to the reference?", description: "Restore 900 × 850 × 500 mm and four drawers, reset inspection tools and select the first front. Applied properties and pending drafts are retained; changed source bindings will require review. Locally saved data is unchanged.", run: reset }} onClose={() => setConfirmReset(false)} />}
     </div>
   );
 }

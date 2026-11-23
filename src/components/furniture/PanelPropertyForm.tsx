@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FurnitureResult } from "../../furniture";
 import { applyReviewedPanelPropertyEdit, createPanelTopology, emptyEdgeTreatment, manufacturingFingerprint, panelFaceView, panelPropertyDraft, parseEdgeTreatmentPresets, reviewPanelPropertyEdit } from "../../manufacturing";
 import type { EdgeKey, EdgeTreatmentPreset, FaceKey, PanelEditReview, PanelManufacturingDocument, PanelManufacturingProperties, PanelPropertyDraft, PanelViewRotation } from "../../manufacturing";
@@ -11,7 +11,7 @@ import type { ManufacturingCatalogue } from "../../manufacturing";
 const inputClass = "mt-1 w-full rounded-lg border border-white/20 bg-slate-900 px-3 py-2 text-sm";
 const buttonClass = "rounded-lg border border-white/20 px-3 py-2 text-sm hover:bg-white/10 disabled:opacity-40";
 const PRESETS_KEY = "draftelm.edging-presets.v1";
-export default function PanelPropertyForm({ record, source, document, syntheticExample, mode, onSave, catalogue, onCatalogueChange, onDrawingViewChange, displayView }: { displayView: { face: FaceKey; rotation: PanelViewRotation }; catalogue: ManufacturingCatalogue; onCatalogueChange: (c: ManufacturingCatalogue) => void; onDrawingViewChange: (v: { face: FaceKey; rotation: PanelViewRotation }) => void; record: PanelManufacturingProperties; source: FurnitureResult; document: PanelManufacturingDocument; syntheticExample: boolean; mode: "basic" | "advanced"; onSave: (document: PanelManufacturingDocument, count: number) => void }) {
+export default function PanelPropertyForm({ record, source, document, syntheticExample, mode, onSave, catalogue, onCatalogueChange, onDrawingViewChange, displayView, onDraftStatus, onRequestApply }: { onDraftStatus: (id: string, dirty: boolean) => void; onRequestApply: (ids: string[], apply: () => void) => void; displayView: { face: FaceKey; rotation: PanelViewRotation }; catalogue: ManufacturingCatalogue; onCatalogueChange: (c: ManufacturingCatalogue) => void; onDrawingViewChange: (v: { face: FaceKey; rotation: PanelViewRotation }) => void; record: PanelManufacturingProperties; source: FurnitureResult; document: PanelManufacturingDocument; syntheticExample: boolean; mode: "basic" | "advanced"; onSave: (document: PanelManufacturingDocument, count: number, panelId: string) => void }) {
   const initial = panelPropertyDraft(record);
   const fingerprint = manufacturingFingerprint(record);
   const [savedFingerprint, setSavedFingerprint] = useState(fingerprint);
@@ -25,18 +25,22 @@ export default function PanelPropertyForm({ record, source, document, syntheticE
   if (savedFingerprint !== fingerprint) {
     setSavedFingerprint(fingerprint); setDraft(initial); setHistory([]); setScope([record.componentId]); setReview(null); setConfirmed(false); setError("");
   }
+  if (review && review.documentFingerprint !== manufacturingFingerprint(document)) { setReview(null); setConfirmed(false); }
+  const dirty = manufacturingFingerprint(draft) !== manufacturingFingerprint(initial);
+  useEffect(() => { onDraftStatus(record.componentId, dirty); }, [record.componentId, dirty, onDraftStatus]);
   const panel = source.components.find(p => p.kind === "panel" && p.id === record.componentId)!;
   if (panel.kind !== "panel") return null;
   const topology = createPanelTopology(panel, record.orientation), view = panelFaceView(topology, face, rotation);
   const selectedSide = Object.entries(view.sides).find(([, e]) => e.key === selectedEdge)![0];
   const edge = draft.edges[selectedEdge], advanced = mode === "advanced";
-  const dirty = manufacturingFingerprint(draft) !== manufacturingFingerprint(initial);
   function update(next: PanelPropertyDraft, fromLibrary = false) { if (!fromLibrary) next = detachChangedCatalogueSelections(draft, next); setHistory(h => [...h.slice(-39), draft]); setDraft(next); setReview(null); setConfirmed(false); setError(""); }
   const changeFace = (patch: Partial<PanelPropertyDraft["faces"]["a"]>) => update({ ...draft, faces: { ...draft.faces, [face]: { ...draft.faces[face], ...patch } } });
   const changeEdge = (patch: Partial<typeof edge>) => update({ ...draft, edges: { ...draft.edges, [selectedEdge]: { ...edge, ...patch } } });
   function save() {
-    try { const next = applyReviewedPanelPropertyEdit(document, source, scope, draft, review, confirmed, syntheticExample); setDraft(panelPropertyDraft(next.panels.find(p => p.componentId === record.componentId)!)); setHistory([]); setReview(null); setConfirmed(false); setScope([record.componentId]); onSave(next, scope.length); }
+    onRequestApply(scope, () => {
+    try { const next = applyReviewedPanelPropertyEdit(document, source, scope, draft, review, confirmed, syntheticExample); if (scope.includes(record.componentId)) { setDraft(panelPropertyDraft(next.panels.find(p => p.componentId === record.componentId)!)); setHistory([]); } setReview(null); setConfirmed(false); setScope([record.componentId]); onSave(next, scope.length, record.componentId); }
     catch (e) { setError(e instanceof Error ? e.message : "Properties could not be applied."); }
+    });
   }
   function prepareReview() { try { setReview(reviewPanelPropertyEdit(document, source, scope, draft)); setConfirmed(false); setError(""); } catch (e) { setError(e instanceof Error ? e.message : "Review failed."); } }
   function savePreset() {
@@ -51,10 +55,10 @@ export default function PanelPropertyForm({ record, source, document, syntheticE
   }
   return <div>
     <div className="mt-4 flex flex-wrap items-center gap-3">
-      <button type="button" className={buttonClass} disabled={!scope.length || scope.length > 1 && !confirmed} onClick={save}>Apply panel properties</button>
+      <button type="button" className={`${buttonClass} bg-blue-600/40`} disabled={!scope.length || scope.length > 1 && !confirmed} onClick={save}>Apply to current project</button>
       <button type="button" className={buttonClass} disabled={!history.length} onClick={() => { setDraft(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setReview(null); setConfirmed(false); }}>Undo draft change</button>
-      <button type="button" className={buttonClass} disabled={!dirty} onClick={() => update(initial)}>Reset draft changes</button>
-      <p role="status" className="text-sm text-blue-200">{dirty ? "Draft changes — Apply to update the drawing and schedule." : "Showing saved property values."}</p>
+      <button type="button" className={buttonClass} disabled={!dirty} onClick={() => update(initial, true)}>Restore applied values</button>
+      <p role="status" className="text-sm text-blue-200">{dirty ? "Pending draft — not applied or saved locally. Apply updates drawings and schedules." : "Applied project values — use Save locally to keep them for later."}</p>
     </div>
     {error && <p role="alert" className="mt-3 text-sm text-red-200">{error}</p>}
     <div className="mt-4 grid gap-5 lg:grid-cols-[300px_1fr]">
@@ -104,6 +108,6 @@ export default function PanelPropertyForm({ record, source, document, syntheticE
       <p className="mt-3 break-all text-xs">Scope: {scope.join(", ") || "No panels selected"}</p>
       {scope.length > 1 && <><button type="button" className={`${buttonClass} mt-3`} onClick={prepareReview}>Review bulk changes</button>{review && <div role="region" aria-label="Bulk property review" className="mt-3 rounded-lg border border-amber-300/30 p-3"><p className="text-sm">Review: {review.componentIds.length} physical occurrences. No variants are merged. Changing any value or selected ID cancels this confirmation.</p><ul className="mt-2 text-xs">{review.componentIds.map(id => <li key={id} className="mt-2 break-all">{id}</li>)}</ul><details className="mt-3 text-xs"><summary>Exact editable values to copy (including unknown fields)</summary><pre className="mt-2 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(draft, null, 2)}</pre></details><label className="mt-3 flex items-start gap-2 text-sm"><input aria-label="Confirm exact manufacturing property scope" type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />I confirm these values for these {scope.length} physical panel IDs.</label></div>}</>}
     </details>
-    <div className="mt-4 flex flex-wrap items-center gap-4"><button type="button" className={buttonClass} disabled={!scope.length || scope.length > 1 && !confirmed} onClick={save}>Apply to selected panel IDs</button><span className="text-xs text-amber-200">Applied values remain provisional / unverified.</span></div>
+    <p className="mt-4 text-xs text-amber-200">The Apply action above uses the exact selected scope. Applied values remain provisional / unverified.</p>
   </div>;
 }

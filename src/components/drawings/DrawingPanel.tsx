@@ -10,8 +10,11 @@ import DrawingSettings from "./DrawingSettings";
 import type { ManufacturingDrawingInput } from "../../drawings/manufacturing";
 import ManufacturingSchedule from "../furniture/ManufacturingSchedule";
 import { manufacturingWorkflowProfile } from "../../drawings/manufacturingOutput";
+import ConfirmProjectAction from "../furniture/ConfirmProjectAction";
+import type { ProjectAction } from "../furniture/ConfirmProjectAction";
 
-export default function DrawingPanel({ result, manufacturingInput, requestedManufacturingDrawing, onSelectManufacturingPanel }: { result: FurnitureResult; manufacturingInput?: ManufacturingDrawingInput; requestedManufacturingDrawing?: { panelId: string; serial: number }; onSelectManufacturingPanel?: (id: string) => void }) {
+export default function DrawingPanel({ result, manufacturingInput, requestedManufacturingDrawing, onSelectManufacturingPanel, mode = "drawings", pendingCount = 0 }: { mode?: "drawings" | "schedule"; pendingCount?: number; result: FurnitureResult; manufacturingInput?: ManufacturingDrawingInput; requestedManufacturingDrawing?: { panelId: string; serial: number }; onSelectManufacturingPanel?: (id: string) => void }) {
+  const [action, setAction] = useState<ProjectAction | null>(null);
   const [profile, setProfile] = useState<DrawingProfile>(() => manufacturingInput ? manufacturingWorkflowProfile(getDrawingProfile()) : getDrawingProfile());
   const [baseProfileId, setBaseProfileId] = useState("furniture-workshop");
   const [preferencesMessage, setPreferencesMessage] = useState("");
@@ -58,15 +61,30 @@ export default function DrawingPanel({ result, manufacturingInput, requestedManu
     } catch (error) { setExportError(error instanceof Error && (error.message.startsWith("Drawing inputs changed") || error.message.startsWith("Manufacturing PDF requires")) ? error.message : "PDF export failed. The drawing preview is still available; please try again."); }
     finally { setExporting(false); }
   }
-  return (
-    <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-5" aria-label="Engineering drawings">
-      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-medium">2D drawings · panel manufacturing properties</h2><button type="button" disabled={!document || exporting} className="rounded-lg border border-white/20 px-3 py-2 text-sm disabled:opacity-40" onClick={exportPDF}>{exporting ? "Exporting…" : "Export vector PDF"}</button></div>
+  return <section className="mt-4" aria-label="Engineering drawings">
+    <div role="tabpanel" id="manufacturing-area-panel-schedule" aria-labelledby="manufacturing-area-tab-schedule" hidden={mode !== "schedule"}>
+      <h3 className="text-lg font-medium">Panel manufacturing schedule</h3>
+      <p className="mt-2 text-sm text-slate-400">Applied project values. Select a description to return to that physical panel&apos;s setup.</p>
+      {document ? <>
+        {document.manufacturing && <ManufacturingSchedule properties={document.manufacturing.properties} source={result} rows={document.manufacturing.rows} syntheticExample={document.manufacturing.syntheticExample} onSelect={id => { onSelectManufacturingPanel?.(id); setSelectedSheet(`panel:${id}`); setHandledRequest(requestedManufacturingDrawing?.serial); }} />}
+      </> : <p role="status" className="mt-4 text-amber-200">{generation.issues.join(" ")}</p>}
+    </div>
+    <div role="tabpanel" id="manufacturing-area-panel-drawings" aria-labelledby="manufacturing-area-tab-drawings" hidden={mode !== "drawings"}>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="text-lg font-medium">Drawings & PDF</h3><button type="button" disabled={!document || exporting} className="rounded-lg border border-white/20 px-3 py-2 text-sm disabled:opacity-40" onClick={exportPDF}>{exporting ? "Exporting…" : "Export preliminary vector PDF"}</button></div>
       <p className="mt-2 text-sm text-amber-200">Preliminary nominal drawings — not for manufacture. BS 8888:2025 requirements have not been individually verified against licensed standards.</p>
+      {pendingCount > 0 && <p role="status" className="mt-2 text-sm text-amber-200">{pendingCount} panel draft(s) are pending. Preview and PDF contain applied project values only.</p>}
+      <details className="mt-4 rounded-xl border border-white/10 p-3"><summary className="cursor-pointer text-sm">Drawing settings & local preferences</summary>
       <DrawingSettings profile={profile} baseProfileId={baseProfileId} message={preferencesMessage}
         onChange={p => { setProfile(p); setPreferencesMessage(""); }} onSelect={selectProfile}
-        onReset={() => selectProfile(baseProfileId)} onSave={savePreferences} onLoad={loadPreferences} />
-      <p className="mt-3 text-xs leading-relaxed text-slate-400">{profile.sheet.format} landscape · model dimensions in mm · plotted scales are shown per view. Drawings use revision-bound engine geometry; sheet explosion offsets are presentation only and independent of viewer controls. Overall depth includes projecting fronts; carcass depth is dimensioned separately.</p>
+        onReset={() => setAction({ title: "Reset drawing settings?", description: "Replace active output settings with the selected profile defaults. Panel properties and locally saved preferences are unchanged.", run: () => selectProfile(baseProfileId) })} onSave={savePreferences} onLoad={() => setAction({ title: "Load drawing preferences?", description: "Replace active drawing settings with the preferences saved in this browser. Panel drafts and applied properties are unchanged.", run: loadPreferences })} />
+      </details>
+      <p className="mt-3 text-xs text-slate-400">{profile.sheet.format} landscape · {profile.name} · {document?.sheets.length ?? 0} pages · {profile.sheet.projectionConvention}. Scales are shown per view.</p>
       {document && sheet ? <>
+
+        <label className="mt-4 block text-sm">Drawing sheet<select aria-label="Drawing sheet" className="ml-3 max-w-full rounded-lg border border-white/20 bg-slate-900 p-2" value={sheet.id} onChange={e => { setSelectedSheet(e.target.value); setHandledRequest(requestedManufacturingDrawing?.serial); }}>{document.sheets.map(s => <option key={s.id} value={s.id}>{s.metadata.number}/{s.metadata.total} · {s.id} · {s.metadata.subject}</option>)}</select></label>
+        <div className="mt-4 overflow-auto rounded-lg bg-slate-200 p-2 sm:p-4"><div className="min-w-[720px]"><SheetPreview document={document} sheet={sheet} /></div></div>
+        <p className="mt-2 text-xs text-slate-400">Scroll the sheet horizontally on small screens. Drawings use parallel projections of source panels and explicit presentation translations. {document.gaPlan.visibility.isometricMode === "diagnostic-wireframe" ? "Diagnostic isometric wireframe includes hidden edges." : "Isometric hidden edges are removed against solid panels."} PDF: print at Actual size / 100%; browser scaling changes physical print scale.</p>
+        <details className="mt-4 rounded-xl border border-white/10 p-4"><summary className="cursor-pointer text-sm">Engineering checks & source traceability · {document.reconciliation.panelQuantity} panels · {document.componentDimensionCoverage.displayedDimensionIds.length} component measurements · {document.functionalDimensionCoverage.displayedRequestIds.length} core relationships</summary>
         <p role="status" className="mt-3 text-sm text-emerald-200">Internal BOM reconciled · {document.reconciliation.panelQuantity} panels · {document.cuttingList.length} distinct blanks · all {document.reconciliation.componentCount} component IDs retained. Nominal cutting sizes carry no manufacturing allowances.</p>
         <p className="mt-2 text-xs text-slate-300">GA primary: {document.gaPlan.policy.selectedPrimary ?? "hidden"} · {document.gaPlan.coverage.displayedDimensionIds.length}/4 nominal GA dimensions displayed. Dimensions use the current closed panel geometry; tolerances and manufacturing datums remain unspecified.</p>
         <p className="mt-2 text-xs text-slate-300">Component blank dimensions: {document.componentDimensionCoverage.displayedDimensionIds.length}/{document.componentDimensionCoverage.requiredDimensionIds.length} occurrence measurements displayed through {document.componentDimensionPlan.groups.length} nominal blank groups. Length and width use face edges; linked thickness is normal to the face.</p>
@@ -101,12 +119,11 @@ export default function DrawingPanel({ result, manufacturingInput, requestedManu
           <ul>{document.compositionReport.views.filter(v => v.sheetId === sheet.id).map(v => <li key={v.viewId}>{v.viewId}: {Math.round(v.utilisation * 100)}% projected envelope utilisation</li>)}</ul>
         </details>
         {sheet.assemblyScope && <p className="mt-2 break-words text-xs text-slate-400">Assembly occurrences: {sheet.assemblyScope.assemblyIds.join(", ")}. Scoped quantities exclude hardware allowances. Reused sheets compare existing panel layouts; manufacturing interchangeability remains unassessed.</p>}
-        {document.manufacturing && <ManufacturingSchedule properties={document.manufacturing.properties} source={result} rows={document.manufacturing.rows} syntheticExample={document.manufacturing.syntheticExample} onSelect={id => { onSelectManufacturingPanel?.(id); setSelectedSheet(`panel:${id}`); setHandledRequest(requestedManufacturingDrawing?.serial); }} />}
-        <label className="mt-4 block text-sm">Drawing sheet<select aria-label="Drawing sheet" className="ml-3 max-w-full rounded-lg border border-white/20 bg-slate-900 p-2" value={sheet.id} onChange={e => { setSelectedSheet(e.target.value); setHandledRequest(requestedManufacturingDrawing?.serial); }}>{document.sheets.map(s => <option key={s.id} value={s.id}>{s.metadata.number}/{s.metadata.total} · {s.id} · {s.metadata.subject}</option>)}</select></label>
-        <div className="mt-4 overflow-auto rounded-lg bg-slate-200 p-2 sm:p-4"><div className="min-w-[720px]"><SheetPreview document={document} sheet={sheet} /></div></div>
-        <p className="mt-2 text-xs text-slate-400">Scroll the sheet horizontally on small screens. Drawings use parallel projections of source panels and explicit presentation translations. {document.gaPlan.visibility.isometricMode === "diagnostic-wireframe" ? "Diagnostic isometric wireframe includes hidden edges." : "Isometric hidden edges are removed against solid panels."} PDF: print at Actual size / 100%; browser scaling changes physical print scale.</p>
-      </> : <div role="status" className="mt-4 text-sm text-amber-200">{generation.issues.join(" ")}</div>}
+
+        </details>
+      </> : <p role="status" className="mt-4 text-sm text-amber-200">{generation.issues.join(" ")}</p>}
       {exportError && <p role="alert" className="mt-3 text-sm text-red-200">{exportError}</p>}
-    </section>
-  );
+    </div>
+    {action && <ConfirmProjectAction action={action} onClose={() => setAction(null)} />}
+  </section>;
 }

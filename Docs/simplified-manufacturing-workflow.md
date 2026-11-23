@@ -1,5 +1,7 @@
 # Simplified manufacturing workflow — Phase 5D.3
 
+**23 November update:** [Phase 5UX.2 workspaces](customer-first-workspaces.md) retain pending forms across panel/task/workspace changes. The earlier apply-before-switching limitation below is superseded. Apply updates the project; local Save keeps applied properties only, and load/reset/source-review operations explicitly confirm replacement of retained drafts.
+
 Implemented 19 November 2026. This builds on [panel properties](panel-manufacturing-properties.md) and [their visible integration](visible-panel-manufacturing-properties.md). It changes the workshop editing/presentation workflow, without changing furniture geometry, engineering BOM formulas, release authority or nominal blank dimensions.
 
 ## Basic workflow

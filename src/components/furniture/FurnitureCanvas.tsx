@@ -12,11 +12,11 @@ import type { DrawerGroup, DrawerPositions } from "./drawerMotion";
 import type { PanelRole, PreviewModel } from "./viewerGeometry";
 
 function CameraControls({ bounds, resetKey }: { bounds: NonNullable<PreviewModel["bounds"]>; resetKey: number }) {
-  const { get, invalidate, size } = useThree();
+  const { get, invalidate } = useThree();
   const controls = useRef<OrbitControls | null>(null);
   useEffect(() => {
     // Three owns this imperative camera; read it inside the effect, not from React render data.
-    const { camera, gl } = get();
+    const { camera, gl, size } = get();
     const orbit = new OrbitControls(camera, gl.domElement);
     controls.current = orbit;
     const radius = Math.hypot(...bounds.size) / 2;
@@ -38,7 +38,7 @@ function CameraControls({ bounds, resetKey }: { bounds: NonNullable<PreviewModel
     orbit.update();
     invalidate();
     return () => { orbit.removeEventListener("change", render); orbit.dispose(); controls.current = null; };
-  }, [bounds, get, invalidate, resetKey, size.width, size.height]);
+  }, [bounds, get, invalidate, resetKey]);
   useFrame(() => controls.current?.update());
   return null;
 }

@@ -33,7 +33,7 @@ export default function ComponentInspector({ model, result, specification, selec
       )}
       {parentDrawerName && <p className="mt-3 text-sm text-amber-200">Parent drawer highlighted: {parentDrawerName}</p>}
       {panel ? (
-        <dl className="mt-5 space-y-4 text-sm" aria-live="polite">
+        <div className="mt-5"><p className="text-sm font-medium">{panel.name}</p><p className="mt-1 text-xs text-slate-400">{assemblyName(panel.assemblyId)}</p><details className="mt-4 text-sm"><summary className="cursor-pointer">Panel dimensions & engineering references</summary><dl className="mt-4 space-y-4 text-sm" aria-live="polite">
           <div><dt className="text-slate-400">Part</dt><dd className="mt-1">{panel.name}</dd></div>
           <div><dt className="text-slate-400">Component ID</dt><dd className="mt-1 break-all font-mono text-xs">{panel.id}</dd></div>
           <div><dt className="text-slate-400">Dimensions · X × Y × Z</dt><dd className="mt-1">{mm(panel.dimensions.x)} × {mm(panel.dimensions.y)} × {mm(panel.dimensions.z)} mm</dd></div>
@@ -41,7 +41,7 @@ export default function ComponentInspector({ model, result, specification, selec
           <div><dt className="text-slate-400">Material</dt><dd className="mt-1">{material?.name ?? panel.materialId}<span className="mt-1 block font-mono text-xs text-slate-400">{panel.materialId}</span></dd></div>
           <div><dt className="text-slate-400">Assembly</dt><dd className="mt-1">{assemblyName(panel.assemblyId)}<span className="mt-1 block break-all font-mono text-xs text-slate-400">{panel.assemblyId}</span></dd></div>
           <div><dt className="text-slate-400">Stock thickness</dt><dd className="mt-1">{mm(panel.thickness)} mm · {panel.thicknessAxis.toUpperCase()} axis</dd></div>
-        </dl>
+        </dl></details></div>
       ) : <p className="mt-6 text-sm text-slate-400">No panel selected.</p>}
     </aside>
   );
