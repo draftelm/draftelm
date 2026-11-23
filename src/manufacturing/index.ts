@@ -16,3 +16,5 @@ export { emptyEdgeTreatment, parseEdgeTreatmentPresets, reviewPanelPropertyEdit,
 export type { EdgeTreatmentPreset, PanelEditReview } from "./workflow";
 export * from "./catalogue";
 export * from "./catalogueEditing";
+export * from "./groups";
+export * from "./proposals";

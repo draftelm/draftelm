@@ -4,6 +4,9 @@ import type { FurnitureResult } from "../../furniture";
 import { applyReviewedPanelPropertyEdit, createPanelTopology, emptyEdgeTreatment, manufacturingFingerprint, panelFaceView, panelPropertyDraft, parseEdgeTreatmentPresets, reviewPanelPropertyEdit } from "../../manufacturing";
 import type { EdgeKey, EdgeTreatmentPreset, FaceKey, PanelEditReview, PanelManufacturingDocument, PanelManufacturingProperties, PanelPropertyDraft, PanelViewRotation } from "../../manufacturing";
 import PanelFaceDiagram from "./PanelFaceDiagram";
+import GuidedPanelSetup from "./GuidedPanelSetup";
+import { mergePanelDraftFields } from "../../manufacturing";
+import type { ManufacturingComponentGroup, ManufacturingDiagnostic } from "../../manufacturing";
 import CataloguePresetPicker from "./CataloguePresetPicker";
 import { detachChangedCatalogueSelections, collectCatalogueReferences } from "../../manufacturing";
 import type { ManufacturingCatalogue } from "../../manufacturing";
@@ -11,7 +14,8 @@ import type { ManufacturingCatalogue } from "../../manufacturing";
 const inputClass = "mt-1 w-full rounded-lg border border-white/20 bg-slate-900 px-3 py-2 text-sm";
 const buttonClass = "rounded-lg border border-white/20 px-3 py-2 text-sm hover:bg-white/10 disabled:opacity-40";
 const PRESETS_KEY = "draftelm.edging-presets.v1";
-export default function PanelPropertyForm({ record, source, document, syntheticExample, mode, onSave, catalogue, onCatalogueChange, onDrawingViewChange, displayView, onDraftStatus, onRequestApply }: { onDraftStatus: (id: string, dirty: boolean) => void; onRequestApply: (ids: string[], apply: () => void) => void; displayView: { face: FaceKey; rotation: PanelViewRotation }; catalogue: ManufacturingCatalogue; onCatalogueChange: (c: ManufacturingCatalogue) => void; onDrawingViewChange: (v: { face: FaceKey; rotation: PanelViewRotation }) => void; record: PanelManufacturingProperties; source: FurnitureResult; document: PanelManufacturingDocument; syntheticExample: boolean; mode: "basic" | "advanced"; onSave: (document: PanelManufacturingDocument, count: number, panelId: string) => void }) {
+export default function PanelPropertyForm({ record, source, document, syntheticExample, mode, onSave, catalogue, onCatalogueChange, onDrawingViewChange, displayView, onDraftStatus, onRequestApply, group, currentRevision, sourceCurrent, diagnostics }: { diagnostics: ManufacturingDiagnostic[]; group: ManufacturingComponentGroup; currentRevision: string; sourceCurrent: boolean; onDraftStatus: (id: string, dirty: boolean) => void; onRequestApply: (ids: string[], apply: () => void) => void; displayView: { face: FaceKey; rotation: PanelViewRotation }; catalogue: ManufacturingCatalogue; onCatalogueChange: (c: ManufacturingCatalogue) => void; onDrawingViewChange: (v: { face: FaceKey; rotation: PanelViewRotation }) => void; record: PanelManufacturingProperties; source: FurnitureResult; document: PanelManufacturingDocument; syntheticExample: boolean; mode: "basic" | "advanced"; onSave: (document: PanelManufacturingDocument, count: number, panelId: string) => void }) {
+  const [guidedPending, setGuidedPending] = useState(false), [proposalEpoch, setProposalEpoch] = useState(0);
   const initial = panelPropertyDraft(record);
   const fingerprint = manufacturingFingerprint(record);
   const [savedFingerprint, setSavedFingerprint] = useState(fingerprint);
@@ -23,10 +27,10 @@ export default function PanelPropertyForm({ record, source, document, syntheticE
   // Synchronize a newly applied/loaded record while retaining face, rotation and
   // loaded presets. Mode changes do not replace the record or the pending draft.
   if (savedFingerprint !== fingerprint) {
-    setSavedFingerprint(fingerprint); setDraft(initial); setHistory([]); setScope([record.componentId]); setReview(null); setConfirmed(false); setError("");
+    setSavedFingerprint(fingerprint); setProposalEpoch(n => n + 1); setDraft(initial); setHistory([]); setScope([record.componentId]); setReview(null); setConfirmed(false); setError("");
   }
   if (review && review.documentFingerprint !== manufacturingFingerprint(document)) { setReview(null); setConfirmed(false); }
-  const dirty = manufacturingFingerprint(draft) !== manufacturingFingerprint(initial);
+  const dirty = manufacturingFingerprint(draft) !== manufacturingFingerprint(initial) || guidedPending;
   useEffect(() => { onDraftStatus(record.componentId, dirty); }, [record.componentId, dirty, onDraftStatus]);
   const panel = source.components.find(p => p.kind === "panel" && p.id === record.componentId)!;
   if (panel.kind !== "panel") return null;
@@ -54,13 +58,23 @@ export default function PanelPropertyForm({ record, source, document, syntheticE
     } catch (e) { setPresetMessage(e instanceof Error ? e.message : "Preset could not be saved."); }
   }
   return <div>
+    <div hidden={mode !== "basic"}>
+      <GuidedPanelSetup diagnostics={diagnostics} group={group} record={record} source={source} document={document} catalogue={catalogue} draft={draft} onStage={update} view={displayView} onView={onDrawingViewChange} selectedEdge={selectedEdge} onEdge={setSelectedEdge} onPending={setGuidedPending} epoch={proposalEpoch} currentRevision={currentRevision} sourceCurrent={sourceCurrent} syntheticExample={syntheticExample} onRequestApply={onRequestApply} onCommit={(next, fields, ids) => {
+        const applied = next.panels.find(p => p.componentId === record.componentId)!;
+        setSavedFingerprint(manufacturingFingerprint(applied));
+        // Rebase only fields actually applied to the representative; retain other Advanced edits.
+        if (ids.includes(record.componentId)) setDraft(mergePanelDraftFields(draft, panelPropertyDraft(applied), fields));
+        setHistory([]); setReview(null); setConfirmed(false); setProposalEpoch(n => n + 1); onSave(next, ids.length, record.componentId);
+      }} />
+    </div>
     <div className="mt-4 flex flex-wrap items-center gap-3">
-      <button type="button" className={`${buttonClass} bg-blue-600/40`} disabled={!scope.length || scope.length > 1 && !confirmed} onClick={save}>Apply to current project</button>
+      <button type="button" hidden={mode !== "advanced"} className={`${buttonClass} bg-blue-600/40`} disabled={!scope.length || scope.length > 1 && !confirmed} onClick={save}>Apply to current project</button>
       <button type="button" className={buttonClass} disabled={!history.length} onClick={() => { setDraft(history[history.length - 1]); setHistory(h => h.slice(0, -1)); setReview(null); setConfirmed(false); }}>Undo draft change</button>
-      <button type="button" className={buttonClass} disabled={!dirty} onClick={() => update(initial, true)}>Restore applied values</button>
+      <button type="button" className={buttonClass} disabled={!dirty} onClick={() => { update(initial, true); setProposalEpoch(n => n + 1); }}>Restore applied values</button>
       <p role="status" className="text-sm text-blue-200">{dirty ? "Pending draft — not applied or saved locally. Apply updates drawings and schedules." : "Applied project values — use Save locally to keep them for later."}</p>
     </div>
     {error && <p role="alert" className="mt-3 text-sm text-red-200">{error}</p>}
+    <div hidden={mode !== "advanced"}>
     <div className="mt-4 grid gap-5 lg:grid-cols-[300px_1fr]">
       <div className="rounded-xl border border-white/10 p-4">
         <div className="mb-3 flex flex-wrap gap-2"><button type="button" className={buttonClass} onClick={() => { const next = face === "a" ? "b" : "a"; onDrawingViewChange({ face: next, rotation }); }}>Flip to face {face === "a" ? "B" : "A"}</button><button type="button" className={buttonClass} onClick={() => { const next = ((rotation + 90) % 360) as PanelViewRotation; onDrawingViewChange({ face, rotation: next }); }}>Rotate diagram 90°</button></div>
@@ -109,5 +123,6 @@ export default function PanelPropertyForm({ record, source, document, syntheticE
       {scope.length > 1 && <><button type="button" className={`${buttonClass} mt-3`} onClick={prepareReview}>Review bulk changes</button>{review && <div role="region" aria-label="Bulk property review" className="mt-3 rounded-lg border border-amber-300/30 p-3"><p className="text-sm">Review: {review.componentIds.length} physical occurrences. No variants are merged. Changing any value or selected ID cancels this confirmation.</p><ul className="mt-2 text-xs">{review.componentIds.map(id => <li key={id} className="mt-2 break-all">{id}</li>)}</ul><details className="mt-3 text-xs"><summary>Exact editable values to copy (including unknown fields)</summary><pre className="mt-2 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(draft, null, 2)}</pre></details><label className="mt-3 flex items-start gap-2 text-sm"><input aria-label="Confirm exact manufacturing property scope" type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />I confirm these values for these {scope.length} physical panel IDs.</label></div>}</>}
     </details>
     <p className="mt-4 text-xs text-amber-200">The Apply action above uses the exact selected scope. Applied values remain provisional / unverified.</p>
+    </div>
   </div>;
 }

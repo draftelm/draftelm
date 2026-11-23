@@ -113,7 +113,7 @@ try {
   for (const p of referencePDF.getPages()) { assert(Math.abs(p.getWidth() / (72 / 25.4) - 420) < 0.01); assert(Math.abs(p.getHeight() / (72 / 25.4) - 297) < 0.01); }
   if (process.env.DRAFTELM_UX_BASELINE_PDF) assert.deepEqual(streams(referencePDF), streams(await PDFDocument.load(await fs.readFile(process.env.DRAFTELM_UX_BASELINE_PDF))), "PDF vector/text streams changed");
   mark("16 A3 reference pages, vector PDF and pre-change SVG/PDF parity");
-  await setup();
+  await setup(); await editor.getByRole("button", { name: "Advanced", exact: true }).click();
 
   // Multiple independent drafts, including fields hidden by mode, stay with each panel.
   await material().fill("SYNTHETIC UX FIRST DRAFT");
@@ -132,7 +132,7 @@ try {
   await editor.getByRole("button", { name: "Basic", exact: true }).click();
   await design(); await expect(page.getByRole("combobox", { name: "Component", exact: true })).toHaveValue(id);
   await page.getByRole("link", { name: "DRAFTELM", exact: true }).click(); await expect(page.getByRole("dialog")).toBeVisible(); await dismiss(); await expect(workspaceTab("Design")).toHaveAttribute("aria-selected", "true");
-  await page.getByRole("combobox", { name: "Component", exact: true }).selectOption(second); await manufacturing(); await expect(material()).toHaveValue("SYNTHETIC UX SECOND DRAFT");
+  await page.getByRole("combobox", { name: "Component", exact: true }).selectOption(second); await manufacturing(); await expect(editor.getByRole("button", { name: "Basic", exact: true })).toHaveAttribute("aria-pressed", "true"); await editor.getByRole("button", { name: "Advanced", exact: true }).click(); await expect(material()).toHaveValue("SYNTHETIC UX SECOND DRAFT");
   await select.selectOption(id); await editor.getByRole("button", { name: "Advanced", exact: true }).click(); await expect(field("Manufacturer material codes")).toHaveValue("SYNTHETIC-MAKER=UX-CODE");
   await drawings(); await expect(page.getByText("2 panel draft(s) are pending.", { exact: false })).toBeVisible(); await tab("Schedule").click(); await expect(row(id)).not.toContainText("SYNTHETIC UX FIRST DRAFT");
   await setup(); await storage(); await expect(editor.getByRole("button", { name: "Save applied properties locally", exact: true })).toBeDisabled();

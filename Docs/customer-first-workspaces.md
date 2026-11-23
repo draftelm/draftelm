@@ -1,5 +1,7 @@
 # Customer-first furniture workspaces — Phase 5UX.2
 
+**Phase 5UX.3 update:** [Hybrid guided manufacturing](hybrid-guided-manufacturing.md) now implements preset-first Basic group decisions, visual questions and reviewed field-specific application. Advanced retains the earlier full editor. Earlier layout/Basic descriptions below are historical where superseded.
+
 Implemented 23 November 2026. This is the first implementation slice from the [UX audit roadmap](ux-implementation-roadmap.md). It introduces **Design** and **Manufacturing**, not the complete proposed Describe/Design/Manufacturing/Review/Export journey. Existing furniture geometry, manufacturing meanings, drawing generation and approval restrictions remain authoritative.
 
 ## What changes on screen

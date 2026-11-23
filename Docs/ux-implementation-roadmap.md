@@ -1,5 +1,7 @@
 # UX implementation roadmap — Phase 5UX.1
 
+**Phase 5UX.3 update:** [Hybrid guided manufacturing](hybrid-guided-manufacturing.md) now implements preset-first Basic group decisions, visual questions and reviewed field-specific application. Advanced retains the earlier full editor. Earlier layout/Basic descriptions below are historical where superseded.
+
 **Implementation update:** [Phase 5UX.2 workspaces](customer-first-workspaces.md) now implement the first Design/Manufacturing separation and editing protections. Subsequent milestones remain proposed. Historical audit delivery/test statements below refer to documentation-only 5UX.1, not the later source changes.
 
 Audit date: **23 November 2026**. The original 5UX.1 delivery was documentation and architecture analysis only, with no source changes or test/build run. The subsequent 5UX.2 implementation is recorded above; the remaining milestones below are proposals.

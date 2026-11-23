@@ -1,5 +1,7 @@
 # Manufacturing libraries and drawing integration — Phase 5D.4
 
+**Phase 5UX.3 update:** [Hybrid guided manufacturing](hybrid-guided-manufacturing.md) now implements preset-first Basic group decisions, visual questions and reviewed field-specific application. Advanced retains the earlier full editor. Earlier layout/Basic descriptions below are historical where superseded.
+
 Implemented 19 November 2026. This extends [the panel property schema](panel-manufacturing-properties.md), [visible properties](visible-panel-manufacturing-properties.md) and [the simplified workshop workflow](simplified-manufacturing-workflow.md). It adds reusable definitions and a visibly different manufacturing map, without changing the furniture engine, nominal dimensions or engineering BOM.
 
 ## Workshop workflow

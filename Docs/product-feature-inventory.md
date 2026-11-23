@@ -1,5 +1,7 @@
 # Product feature inventory — Phase 5UX.1
 
+**Phase 5UX.3 update:** [Hybrid guided manufacturing](hybrid-guided-manufacturing.md) now implements preset-first Basic group decisions, visual questions and reviewed field-specific application. Advanced retains the earlier full editor. Earlier layout/Basic descriptions below are historical where superseded.
+
 **Subsequent implementation:** [Phase 5UX.2](customer-first-workspaces.md) adds Design/Manufacturing workspaces, separate panel/schedule/drawing views, retained drafts and clearer save/replacement actions. Descriptions of the former long page, fallback selection and lost panel drafts below are historical audit findings.
 
 Audit date: **23 November 2026**. This is a repository-based product and architecture audit through Phase 5D.4. It adds documentation only. It does not implement the proposed customer journey, approve manufacturing information or change the interface.

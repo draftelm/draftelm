@@ -1,5 +1,7 @@
 # Customer experience blueprint — Phase 5UX.1
 
+**Phase 5UX.3 update:** [Hybrid guided manufacturing](hybrid-guided-manufacturing.md) now implements preset-first Basic group decisions, visual questions and reviewed field-specific application. Advanced retains the earlier full editor. Earlier layout/Basic descriptions below are historical where superseded.
+
 **Implementation update:** [Phase 5UX.2](customer-first-workspaces.md) now provides Design/Manufacturing separation, retained panel drafts and replacement confirmations. The complete five-stage journey and subsequent Basic/library/output redesigns remain proposals. The current-journey table records the pre-5UX.2 audit baseline.
 
 Audit date: **23 November 2026**. **Proposal, not implemented functionality.** This document uses the [current feature inventory](product-feature-inventory.md) and preserves the authority boundaries in the [drawing/manufacturing specification](drawing-manufacturing-specification.md). Delivery steps and acceptance checks are in the [UX implementation roadmap](ux-implementation-roadmap.md).
